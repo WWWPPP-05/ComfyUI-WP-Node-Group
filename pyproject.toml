@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-wp-node-group"
+version = "1.0.0"
+description = "WP Node Group - 包含图像加载、提示词预设、分辨率选择器、图像分割和API调用等5个实用节点"
+license = "MIT"
+requires-python = ">=3.10"
+
+[project.urls]
+Repository = "https://github.com/yourusername/comfyui-wp-node-group"
+
+[tool.comfy]
+PublisherId = "your-publisher-id"
+DisplayName = "WP Node Group"
+Icon = "🐋"
