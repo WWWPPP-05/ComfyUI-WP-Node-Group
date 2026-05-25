@@ -1,0 +1,18 @@
+{
+  "version": "2.0",
+  "created_at": "2026-05-23T09:29:35.818148",
+  "default_project": "默认项目",
+  "default_category": "默认分类",
+  "supported_formats": [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif"
+  ],
+  "max_file_size": 52428800,
+  "thumbnail_size": [
+    256,
+    256
+  ]
+}

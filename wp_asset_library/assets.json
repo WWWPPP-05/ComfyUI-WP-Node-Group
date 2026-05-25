@@ -1,0 +1,158 @@
+{
+  "projects": {
+    "6e6464b7-a36c-4038-a902-f48d53bc0954": {
+      "id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "name": "漫剧资产库-早上起床上班",
+      "description": "",
+      "created_at": "2026-05-24T14:40:38.294580",
+      "categories": {
+        "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea": {
+          "id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+          "name": "1",
+          "description": "",
+          "created_at": "2026-05-24T14:40:54.233952",
+          "assets": [
+            "asset_20",
+            "asset_21",
+            "asset_22",
+            "asset_23",
+            "asset_24",
+            "asset_25",
+            "asset_26",
+            "asset_27",
+            "asset_28"
+          ]
+        }
+      }
+    }
+  },
+  "assets": {
+    "asset_20": {
+      "id": "asset_20",
+      "name": "卧室",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779604866157.png",
+      "file_name": "asset_1779604866157.png",
+      "file_size": 2319215,
+      "file_ext": ".png",
+      "file_hash": "f2fecefa96c05d16ebbc995cea2d0bf1",
+      "upload_time": "2026-05-24T14:41:06.171962",
+      "modified_time": "2026-05-24T14:41:06.165361"
+    },
+    "asset_21": {
+      "id": "asset_21",
+      "name": "角色",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779604931726.png",
+      "file_name": "asset_1779604931726.png",
+      "file_size": 18176071,
+      "file_ext": ".png",
+      "file_hash": "97de722578f3510f17e1cabfe4449ca0",
+      "upload_time": "2026-05-24T14:42:11.807358",
+      "modified_time": "2026-05-24T14:42:11.778523"
+    },
+    "asset_22": {
+      "id": "asset_22",
+      "name": "卫生间",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779605031466.png",
+      "file_name": "asset_1779605031466.png",
+      "file_size": 2848093,
+      "file_ext": ".png",
+      "file_hash": "179efbf37a7aca973b7f483be992f72c",
+      "upload_time": "2026-05-24T14:43:51.480521",
+      "modified_time": "2026-05-24T14:43:51.474657"
+    },
+    "asset_23": {
+      "id": "asset_23",
+      "name": "厨房",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779605135204.png",
+      "file_name": "asset_1779605135204.png",
+      "file_size": 3010932,
+      "file_ext": ".png",
+      "file_hash": "05e057e07df81f4a54120bda7e1c470b",
+      "upload_time": "2026-05-24T14:45:35.219490",
+      "modified_time": "2026-05-24T14:45:35.214437"
+    },
+    "asset_24": {
+      "id": "asset_24",
+      "name": "餐桌",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779605326372.png",
+      "file_name": "asset_1779605326372.png",
+      "file_size": 2988115,
+      "file_ext": ".png",
+      "file_hash": "30df610688c732af9ca9344f6774efb9",
+      "upload_time": "2026-05-24T14:48:46.387438",
+      "modified_time": "2026-05-24T14:48:46.382364"
+    },
+    "asset_25": {
+      "id": "asset_25",
+      "name": "衣柜",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779609749263.png",
+      "file_name": "asset_1779609749263.png",
+      "file_size": 3095690,
+      "file_ext": ".png",
+      "file_hash": "ab38db1d6a0542869a2ff088d20f538a",
+      "upload_time": "2026-05-24T16:02:29.299838",
+      "modified_time": "2026-05-24T16:02:29.273987"
+    },
+    "asset_26": {
+      "id": "asset_26",
+      "name": "玄关",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779609878009.png",
+      "file_name": "asset_1779609878009.png",
+      "file_size": 3668281,
+      "file_ext": ".png",
+      "file_hash": "33c5d2878666f53c9ecf230494a0d7b2",
+      "upload_time": "2026-05-24T16:04:38.031349",
+      "modified_time": "2026-05-24T16:04:38.021306"
+    },
+    "asset_27": {
+      "id": "asset_27",
+      "name": "街道",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779609996127.png",
+      "file_name": "asset_1779609996127.png",
+      "file_size": 3777783,
+      "file_ext": ".png",
+      "file_hash": "9ad1d12b37b82838c25be500b3056ed4",
+      "upload_time": "2026-05-24T16:06:36.151350",
+      "modified_time": "2026-05-24T16:06:36.141533"
+    },
+    "asset_28": {
+      "id": "asset_28",
+      "name": "城市远景",
+      "description": "",
+      "project_id": "6e6464b7-a36c-4038-a902-f48d53bc0954",
+      "category_id": "fe2368c7-8ef9-46b9-98d3-e9d4afd96fea",
+      "file_path": "F:\\Comfyui-V2\\ComfyUI\\custom_nodes\\Comfyui_WP_Node Group\\wp_asset_library\\漫剧资产库-早上起床上班\\1\\asset_1779610081223.png",
+      "file_name": "asset_1779610081223.png",
+      "file_size": 4022110,
+      "file_ext": ".png",
+      "file_hash": "967223ca56a11e030741503be34b35de",
+      "upload_time": "2026-05-24T16:08:01.243239",
+      "modified_time": "2026-05-24T16:08:01.235094"
+    }
+  },
+  "next_asset_id": 29
+}
