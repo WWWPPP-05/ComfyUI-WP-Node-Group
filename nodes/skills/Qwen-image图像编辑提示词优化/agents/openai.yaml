@@ -1,0 +1,4 @@
+interface:
+  display_name: "图像编辑提示词改写（基于 Qwen Image 2.1）"
+  short_description: "根据原图与编辑要求改写精准指令，保留主体身份和未修改内容，输出标准 JSON"
+  default_prompt: "使用 $image-prompt-i2i，根据我提供的图片改写以下编辑要求并输出 JSON：把衣服改成红色，保持人物和背景不变。"

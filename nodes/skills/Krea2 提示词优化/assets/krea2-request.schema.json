@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Krea 2 Prompt Suite Request",
+  "type": "object",
+  "required": [
+    "mode",
+    "goal"
+  ],
+  "properties": {
+    "mode": {
+      "enum": [
+        "create",
+        "reverse",
+        "recreate",
+        "expand",
+        "refine",
+        "repair",
+        "convert",
+        "multi-reference",
+        "typography",
+        "variants",
+        "evaluate",
+        "node-system",
+        "batch"
+      ]
+    },
+    "goal": {
+      "type": "string"
+    },
+    "target_variant": {
+      "enum": [
+        "hosted-medium",
+        "hosted-large",
+        "raw",
+        "turbo",
+        "unknown"
+      ]
+    },
+    "output_profile": {
+      "enum": [
+        "compact",
+        "production",
+        "exhaustive",
+        "machine"
+      ]
+    },
+    "aspect_ratio": {
+      "type": "string"
+    },
+    "concept": {
+      "type": "string"
+    },
+    "source_prompt": {
+      "type": "string"
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "composition": {
+      "type": "object"
+    },
+    "environment": {
+      "type": "object"
+    },
+    "lighting": {
+      "type": "object"
+    },
+    "color": {
+      "type": "object"
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "style": {
+      "type": "object"
+    },
+    "typography": {
+      "type": "object"
+    },
+    "hard_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "soft_direction": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reference_roles": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": true
+}

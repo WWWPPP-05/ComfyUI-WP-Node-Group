@@ -1,0 +1,4 @@
+interface:
+  display_name: "Krea 2 Prompt Suite"
+  short_description: "Create, reverse, repair, and batch-build Krea 2 prompts"
+  default_prompt: "Use $krea2-prompt-suite to turn my idea or reference image into a production-ready Krea 2 prompt."

@@ -1,0 +1,4 @@
+Pillow>=9.0.0
+requests>=2.28.0
+# llama-cpp-python 为可选依赖：仅「WP 模型加载器/WP 推理节点」需要，
+# 安装方法见 README；不装不影响其他 20 个节点使用

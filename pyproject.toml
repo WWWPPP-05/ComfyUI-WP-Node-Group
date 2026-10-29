@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-wp-node-group"
+version = "1.0.0"
+description = "WP Node Group - 22 个实用节点：图像加载、提示词预设与管理、资产库、简易画板、注释便签、LoRA 堆加载、本地 LLM 推理、全景预览等"
+license = "MIT"
+requires-python = ">=3.10"
+
+[project.urls]
+Repository = "https://github.com/yourusername/comfyui-wp-node-group"
+
+[tool.comfy]
+PublisherId = "your-publisher-id"
+DisplayName = "WP Node Group"
+Icon = "🐋"

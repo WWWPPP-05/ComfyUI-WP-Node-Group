@@ -1,0 +1,30 @@
+# NOTE: 内部参考结构，最终输出给用户时必须合并为单行纯文本字符串。
+
+# Template: 科幻 / 赛博朋克 T2I 提示词
+
+[主体描述]
+[如：一位女主角半倚靠在潮湿的金属墙壁上，右手夹着一根燃烧的电子烟，左臂机械义体微微泛着蓝光，眼神疲惫而冷漠，透过霓虹灯的光晕凝视镜头，嘴角带着一丝嘲讽的弧度，半透明黑色雨衣表面有水珠，内搭紧身高领机能服，义体手臂裸露着精密的机械结构，金属质感的银色眼影，面部有细微的电路纹身]。
+
+[风格与媒介]
+[如：赛博朋克科幻电影海报，Blade Runner style（银翼杀手风格）]。
+
+[环境与场景]
+[如：身后是拥堵的悬浮车道，全息广告牌投射着粉蓝色影像，下雨的赛博都市，满是涂鸦的墙壁，积水地面倒映着霓虹灯，空气中弥漫着浓重的雾气]。
+
+[构图与镜头]
+排版类型：[选择一种]
+镜头语言：[如：cyberpunk cityscape at night（夜间赛博城市景观），towering skyscrapers（高耸入云的摩天大楼），reflections on wet asphalt（湿润沥青路面上的反射），depth layering with foreground sharp and background atmospheric（景深分层）]。
+
+[光照与色彩]
+[如：neon blue and magenta lighting（霓虹蓝与洋红光），dramatic chiaroscuro（戏剧性明暗对比），anamorphic lens flare（变形宽银幕镜头光晕），volumetric fog with light scattering（带有光散射的体积雾），rich teal-orange color grading（浓郁青橙色调）]。
+
+[文字与排版]
+主标题（第一层级）：文案为 "[用户提供的剧名，或【待定】主标题]"，[位置与字体描述]。
+档期日期（第二层级）：文案为 "[用户提供的日期，或【待定】档期日期]"，[位置与字体描述]。
+主演信息（第三层级）：文案为 "[用户提供的主演，或【待定】主演信息]"，[位置与字体描述]。
+
+[画质与细节]
+subtle film grain（细微胶片颗粒），slight chromatic aberration（轻微色差），realistic glow falloff on neon elements（霓虹元素上真实的辉光衰减），anisotropic reflections（各向异性反射），8k resolution, masterpiece, photorealistic。
+
+[输出参数]
+wh_ratio: "2:3"

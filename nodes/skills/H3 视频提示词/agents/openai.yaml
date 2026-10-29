@@ -1,0 +1,4 @@
+interface:
+  display_name: "MiniMax H3 视频提示词"
+  short_description: "编写 H3 中文视频生成提示词（@image 参考、连续镜头因果链、收尾小节组）"
+  default_prompt: "使用 $h3-prompt-writing 把这个多模态请求重写为 MiniMax H3 中文视频生成提示词。"

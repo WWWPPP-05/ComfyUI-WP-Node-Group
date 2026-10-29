@@ -1,0 +1,1999 @@
+{
+ "id": "4042296e-03ca-455a-8678-c6cced278cc1",
+ "revision": 0,
+ "last_node_id": 1005,
+ "last_link_id": 1012,
+ "nodes": [
+  {
+   "id": 475,
+   "type": "LoadImage",
+   "pos": [
+    -490,
+    2750
+   ],
+   "size": [
+    340,
+    550
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 0,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "图像",
+     "name": "image",
+     "type": "COMBO",
+     "widget": {
+      "name": "image"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "选择文件上传",
+     "name": "upload",
+     "type": "IMAGEUPLOAD",
+     "widget": {
+      "name": "upload"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "图像",
+     "localized_name": "图像",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1001,
+      1004,
+      1010
+     ]
+    },
+    {
+     "label": "遮罩",
+     "localized_name": "遮罩",
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "LoadImage",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "pasted/image (12).png",
+    "image"
+   ],
+   "widgets_values_named": {
+    "image": "pasted/image (12).png",
+    "upload": "image"
+   }
+  },
+  {
+   "id": 476,
+   "type": "UNETLoader",
+   "pos": [
+    -490,
+    2000
+   ],
+   "size": [
+    460,
+    90
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "UNET名称",
+     "name": "unet_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "unet_name"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "剪枝类型",
+     "name": "weight_dtype",
+     "type": "COMBO",
+     "widget": {
+      "name": "weight_dtype"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "模型",
+     "localized_name": "模型",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      942
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "UNETLoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    },
+    "models": [
+     {
+      "name": "qwen_image_2.1_int8_convrot.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+      "directory": "diffusion_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "Qwen image 2.1\\qwen_image_2.1_int8_convrot.safetensors",
+    "default"
+   ],
+   "widgets_values_named": {
+    "unet_name": "Qwen image 2.1\\qwen_image_2.1_int8_convrot.safetensors",
+    "weight_dtype": "default"
+   },
+   "color": "#323",
+   "bgcolor": "#535"
+  },
+  {
+   "id": 477,
+   "type": "CLIPLoader",
+   "pos": [
+    -490,
+    2130
+   ],
+   "size": [
+    470,
+    110
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "CLIP名称",
+     "name": "clip_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "clip_name"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "类型",
+     "name": "type",
+     "type": "COMBO",
+     "widget": {
+      "name": "type"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "设备",
+     "name": "device",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "device"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "CLIP",
+     "localized_name": "CLIP",
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      756
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "CLIPLoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    },
+    "models": [
+     {
+      "name": "qwen3vl_8b_bf16.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_bf16.safetensors",
+      "directory": "text_encoders"
+     }
+    ]
+   },
+   "widgets_values": [
+    "Qwen image 2.1\\qwen3vl_8b_int8_convrot.safetensors",
+    "qwen_image",
+    "default"
+   ],
+   "widgets_values_named": {
+    "clip_name": "Qwen image 2.1\\qwen3vl_8b_int8_convrot.safetensors",
+    "type": "qwen_image",
+    "device": "default"
+   },
+   "color": "#323",
+   "bgcolor": "#535"
+  },
+  {
+   "id": 478,
+   "type": "VAELoader",
+   "pos": [
+    -490,
+    2290
+   ],
+   "size": [
+    470,
+    60
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "vae名称",
+     "name": "vae_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "vae_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "VAE",
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      729,
+      758
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "VAELoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    },
+    "models": [
+     {
+      "name": "qwen_image_2.1_vae_bf16.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors",
+      "directory": "vae"
+     }
+    ]
+   },
+   "widgets_values": [
+    "Qwen image 2.1\\qwen_image_2.1_vae_bf16.safetensors"
+   ],
+   "widgets_values_named": {
+    "vae_name": "Qwen image 2.1\\qwen_image_2.1_vae_bf16.safetensors"
+   },
+   "color": "#323",
+   "bgcolor": "#535"
+  },
+  {
+   "id": 479,
+   "type": "EmptyLatentImage",
+   "pos": [
+    -240,
+    2390
+   ],
+   "size": [
+    210,
+    110
+   ],
+   "flags": {
+    "collapsed": false,
+    "disabled": false
+   },
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "宽度",
+     "name": "width",
+     "type": "INT",
+     "widget": {
+      "name": "width"
+     },
+     "link": 938
+    },
+    {
+     "localized_name": "高度",
+     "name": "height",
+     "type": "INT",
+     "widget": {
+      "name": "height"
+     },
+     "link": 939
+    },
+    {
+     "localized_name": "批次大小",
+     "name": "batch_size",
+     "type": "INT",
+     "widget": {
+      "name": "batch_size"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "Latent",
+     "localized_name": "Latent",
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      949
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "EmptyLatentImage",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    1
+   ],
+   "widgets_values_named": {
+    "width": 1024,
+    "height": 1024,
+    "batch_size": 1
+   }
+  },
+  {
+   "id": 480,
+   "type": "VAEDecode",
+   "pos": [
+    180,
+    2090
+   ],
+   "size": [
+    150,
+    50
+   ],
+   "flags": {
+    "collapsed": true,
+    "disabled": false
+   },
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "Latent",
+     "localized_name": "Latent",
+     "name": "samples",
+     "type": "LATENT",
+     "link": 731
+    },
+    {
+     "label": "VAE",
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 729
+    }
+   ],
+   "outputs": [
+    {
+     "label": "图像",
+     "localized_name": "图像",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      745,
+      1012
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "VAEDecode",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "color": "#332922",
+   "bgcolor": "#593930"
+  },
+  {
+   "id": 481,
+   "type": "KSampler",
+   "pos": [
+    330,
+    2010
+   ],
+   "size": [
+    270,
+    270
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "模型",
+     "localized_name": "模型",
+     "name": "model",
+     "type": "MODEL",
+     "link": 937
+    },
+    {
+     "label": "正面条件",
+     "localized_name": "正面条件",
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 762
+    },
+    {
+     "label": "负面条件",
+     "localized_name": "负面条件",
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 763
+    },
+    {
+     "label": "Latent",
+     "localized_name": "Latent图像",
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 949
+    },
+    {
+     "localized_name": "随机种",
+     "name": "seed",
+     "type": "INT",
+     "widget": {
+      "name": "seed"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "步数",
+     "name": "steps",
+     "type": "INT",
+     "widget": {
+      "name": "steps"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "CFG",
+     "name": "cfg",
+     "type": "FLOAT",
+     "widget": {
+      "name": "cfg"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "采样器",
+     "name": "sampler_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "sampler_name"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "调度器",
+     "name": "scheduler",
+     "type": "COMBO",
+     "widget": {
+      "name": "scheduler"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "降噪",
+     "name": "denoise",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "Latent",
+     "localized_name": "Latent",
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      731
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "KSampler",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    55,
+    "fixed",
+    8,
+    1,
+    "res_2s",
+    "simple",
+    1
+   ],
+   "widgets_values_named": {
+    "seed": 55,
+    "control_after_generate": "fixed",
+    "steps": 8,
+    "cfg": 1,
+    "sampler_name": "res_2s",
+    "scheduler": "simple",
+    "denoise": 1
+   }
+  },
+  {
+   "id": 483,
+   "type": "QwenImage21Cache",
+   "pos": [
+    -20,
+    2090
+   ],
+   "size": [
+    270,
+    90
+   ],
+   "flags": {
+    "collapsed": true,
+    "disabled": false
+   },
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "model",
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 944
+    },
+    {
+     "label": "device",
+     "localized_name": "device",
+     "name": "device",
+     "type": "COMBO",
+     "widget": {
+      "name": "device"
+     },
+     "link": null
+    },
+    {
+     "label": "dtype",
+     "localized_name": "dtype",
+     "name": "dtype",
+     "type": "COMBO",
+     "widget": {
+      "name": "dtype"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "MODEL",
+     "localized_name": "模型",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      937
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "QwenImage21Cache",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "auto",
+    "default"
+   ],
+   "widgets_values_named": {
+    "device": "auto",
+    "dtype": "default"
+   }
+  },
+  {
+   "id": 487,
+   "type": "SaveImage",
+   "pos": [
+    640,
+    2010
+   ],
+   "size": [
+    1420,
+    1290
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "图像",
+     "localized_name": "图片",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 745
+    },
+    {
+     "localized_name": "文件名前缀",
+     "name": "filename_prefix",
+     "type": "STRING",
+     "widget": {
+      "name": "filename_prefix"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": []
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.37.0",
+    "Node name for S&R": "SaveImage",
+    "ue_properties": {
+     "widget_ue_connectable": {
+      "filename_prefix": true
+     },
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "psd_干净背景"
+   ],
+   "widgets_values_named": {
+    "filename_prefix": "qwen 2.1 角色卡"
+   },
+   "title": "保存干净背景"
+  },
+  {
+   "id": 497,
+   "type": "TextEncodeQwenImage21",
+   "pos": [
+    20,
+    2130
+   ],
+   "size": [
+    270,
+    290
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "clip",
+     "localized_name": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "link": 756
+    },
+    {
+     "label": "images.image_1",
+     "localized_name": "image_1",
+     "name": "images.image_1",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": 801
+    },
+    {
+     "label": "images.image_2",
+     "localized_name": "image_2",
+     "name": "images.image_2",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "label": "images.image_3",
+     "localized_name": "image_3",
+     "name": "images.image_3",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "label": "vae",
+     "localized_name": "vae",
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": 758
+    },
+    {
+     "label": "prompt",
+     "localized_name": "prompt",
+     "name": "prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     },
+     "link": null
+    },
+    {
+     "label": "negative_prompt",
+     "localized_name": "negative_prompt",
+     "name": "negative_prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "negative_prompt"
+     },
+     "link": null
+    },
+    {
+     "label": "resolution",
+     "localized_name": "resolution",
+     "name": "resolution",
+     "type": "INT",
+     "widget": {
+      "name": "resolution"
+     },
+     "link": null
+    },
+    {
+     "label": "images.image_4",
+     "localized_name": "image_4",
+     "name": "images.image_4",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "positive",
+     "localized_name": "positive",
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      762
+     ]
+    },
+    {
+     "label": "negative",
+     "localized_name": "negative",
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [
+      763
+     ]
+    },
+    {
+     "label": "latent",
+     "localized_name": "latent",
+     "name": "latent",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.37.0",
+    "Node name for S&R": "TextEncodeQwenImage21",
+    "ue_properties": {
+     "widget_ue_connectable": {
+      "prompt": true,
+      "negative_prompt": true,
+      "resolution": true
+     },
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "Remove all the regions covered in solid red. Naturally reconstruct the background behind the removed elements. Keep everything not marked in red exactly unchanged.",
+    "",
+    1024
+   ],
+   "widgets_values_named": {
+    "prompt": "",
+    "negative_prompt": "",
+    "resolution": 1024
+   },
+   "color": "#2a363b",
+   "bgcolor": "#3f5159"
+  },
+  {
+   "id": 532,
+   "type": "ImageScaleToTotalPixels",
+   "pos": [
+    -490,
+    2580
+   ],
+   "size": [
+    240,
+    110
+   ],
+   "flags": {
+    "collapsed": false,
+    "disabled": false
+   },
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "图像",
+     "localized_name": "图像",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1011
+    },
+    {
+     "localized_name": "缩放方法",
+     "name": "upscale_method",
+     "type": "COMBO",
+     "widget": {
+      "name": "upscale_method"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "像素数量",
+     "name": "megapixels",
+     "type": "FLOAT",
+     "widget": {
+      "name": "megapixels"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "分辨率步数",
+     "name": "resolution_steps",
+     "type": "INT",
+     "widget": {
+      "name": "resolution_steps"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "图像",
+     "localized_name": "图像",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      801
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.33.0",
+    "Node name for S&R": "ImageScaleToTotalPixels",
+    "ue_properties": {
+     "widget_ue_connectable": {
+      "upscale_method": true,
+      "megapixels": true,
+      "resolution_steps": true
+     },
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "lanczos",
+    1,
+    32
+   ],
+   "widgets_values_named": {
+    "upscale_method": "lanczos",
+    "megapixels": 1,
+    "resolution_steps": 32
+   },
+   "color": "#233",
+   "bgcolor": "#355"
+  },
+  {
+   "id": 630,
+   "type": "ResolutionSelector",
+   "pos": [
+    -490,
+    2390
+   ],
+   "size": [
+    240,
+    150
+   ],
+   "flags": {
+    "disabled": false
+   },
+   "order": 11,
+   "mode": 0,
+   "showAdvanced": true,
+   "inputs": [
+    {
+     "label": "aspect_ratio",
+     "localized_name": "宽高比",
+     "name": "aspect_ratio",
+     "type": "COMBO",
+     "widget": {
+      "name": "aspect_ratio"
+     },
+     "link": null
+    },
+    {
+     "label": "megapixels",
+     "localized_name": "百万像素",
+     "name": "megapixels",
+     "type": "FLOAT",
+     "widget": {
+      "name": "megapixels"
+     },
+     "link": null
+    },
+    {
+     "label": "multiple",
+     "localized_name": "倍数",
+     "name": "multiple",
+     "type": "INT",
+     "widget": {
+      "name": "multiple"
+     },
+     "link": null
+    },
+    {
+     "label": "preview",
+     "localized_name": "preview",
+     "name": "preview",
+     "shape": 7,
+     "type": "RESOLUTION_PREVIEW",
+     "widget": {
+      "name": "preview"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "width",
+     "localized_name": "宽度",
+     "name": "width",
+     "type": "INT",
+     "links": [
+      938
+     ]
+    },
+    {
+     "label": "height",
+     "localized_name": "高度",
+     "name": "height",
+     "type": "INT",
+     "links": [
+      939
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.36.0",
+    "Node name for S&R": "ResolutionSelector",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "16:9 (Widescreen)",
+    2,
+    32
+   ],
+   "widgets_values_named": {
+    "aspect_ratio": "16:9 (Widescreen)",
+    "megapixels": 2,
+    "multiple": 32
+   },
+   "color": "#233",
+   "bgcolor": "#355"
+  },
+  {
+   "id": 635,
+   "type": "TESpeedQwenImage21",
+   "pos": [
+    -20,
+    2000
+   ],
+   "size": [
+    280,
+    230
+   ],
+   "flags": {
+    "collapsed": true,
+    "disabled": false
+   },
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "model",
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 942
+    },
+    {
+     "label": "attention",
+     "localized_name": "attention",
+     "name": "attention",
+     "type": "COMBO",
+     "widget": {
+      "name": "attention"
+     },
+     "link": null
+    },
+    {
+     "label": "step_cache",
+     "localized_name": "step_cache",
+     "name": "step_cache",
+     "type": "COMBO",
+     "widget": {
+      "name": "step_cache"
+     },
+     "link": null
+    },
+    {
+     "label": "reuse_threshold",
+     "localized_name": "reuse_threshold",
+     "name": "reuse_threshold",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "reuse_threshold"
+     },
+     "link": null
+    },
+    {
+     "label": "start_percent",
+     "localized_name": "start_percent",
+     "name": "start_percent",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "start_percent"
+     },
+     "link": null
+    },
+    {
+     "label": "end_percent",
+     "localized_name": "end_percent",
+     "name": "end_percent",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "end_percent"
+     },
+     "link": null
+    },
+    {
+     "label": "predictor_error_limit",
+     "localized_name": "predictor_error_limit",
+     "name": "predictor_error_limit",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "predictor_error_limit"
+     },
+     "link": null
+    },
+    {
+     "label": "verbose",
+     "localized_name": "verbose",
+     "name": "verbose",
+     "shape": 7,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "verbose"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "model",
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      945
+     ]
+    },
+    {
+     "label": "status",
+     "localized_name": "status",
+     "name": "status",
+     "type": "STRING",
+     "links": null
+    }
+   ],
+   "properties": {
+    "aux_id": "tl2012tl/TE-Speed-QwenImage21",
+    "ver": "2dd46f61bd31dc00e2b58f4206553d48035b201e",
+    "Node name for S&R": "TESpeedQwenImage21",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "input_ue_unconnectable": {},
+     "version": "7.8"
+    }
+   },
+   "widgets_values": [
+    "kitchen_int8",
+    "te_predictor",
+    0.06,
+    0,
+    0,
+    0.08,
+    false
+   ],
+   "widgets_values_named": {
+    "attention": "kitchen_int8",
+    "step_cache": "te_predictor",
+    "reuse_threshold": 0.06,
+    "start_percent": 0,
+    "end_percent": 0,
+    "predictor_error_limit": 0.08,
+    "verbose": false
+   }
+  },
+  {
+   "id": 636,
+   "type": "WP_LoRAStackLoader",
+   "pos": [
+    -20,
+    2040
+   ],
+   "size": [
+    360,
+    310
+   ],
+   "flags": {
+    "collapsed": true,
+    "disabled": false
+   },
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "模型",
+     "localized_name": "模型",
+     "name": "模型",
+     "type": "MODEL",
+     "link": 945
+    },
+    {
+     "label": "LoRA_01",
+     "localized_name": "LoRA_01",
+     "name": "LoRA_01",
+     "type": "COMBO",
+     "widget": {
+      "name": "LoRA_01"
+     },
+     "link": null
+    },
+    {
+     "label": "强度_01",
+     "localized_name": "强度_01",
+     "name": "强度_01",
+     "type": "FLOAT",
+     "widget": {
+      "name": "强度_01"
+     },
+     "link": null
+    },
+    {
+     "label": "启用_01",
+     "localized_name": "启用_01",
+     "name": "启用_01",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "启用_01"
+     },
+     "link": null
+    },
+    {
+     "label": "LoRA_02",
+     "localized_name": "LoRA_02",
+     "name": "LoRA_02",
+     "type": "COMBO",
+     "widget": {
+      "name": "LoRA_02"
+     },
+     "link": null
+    },
+    {
+     "label": "强度_02",
+     "localized_name": "强度_02",
+     "name": "强度_02",
+     "type": "FLOAT",
+     "widget": {
+      "name": "强度_02"
+     },
+     "link": null
+    },
+    {
+     "label": "启用_02",
+     "localized_name": "启用_02",
+     "name": "启用_02",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "启用_02"
+     },
+     "link": null
+    },
+    {
+     "label": "LoRA_03",
+     "localized_name": "LoRA_03",
+     "name": "LoRA_03",
+     "type": "COMBO",
+     "widget": {
+      "name": "LoRA_03"
+     },
+     "link": null
+    },
+    {
+     "label": "强度_03",
+     "localized_name": "强度_03",
+     "name": "强度_03",
+     "type": "FLOAT",
+     "widget": {
+      "name": "强度_03"
+     },
+     "link": null
+    },
+    {
+     "label": "启用_03",
+     "localized_name": "启用_03",
+     "name": "启用_03",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "启用_03"
+     },
+     "link": null
+    },
+    {
+     "label": "LoRA_04",
+     "localized_name": "LoRA_04",
+     "name": "LoRA_04",
+     "type": "COMBO",
+     "widget": {
+      "name": "LoRA_04"
+     },
+     "link": null
+    },
+    {
+     "label": "强度_04",
+     "localized_name": "强度_04",
+     "name": "强度_04",
+     "type": "FLOAT",
+     "widget": {
+      "name": "强度_04"
+     },
+     "link": null
+    },
+    {
+     "label": "启用_04",
+     "localized_name": "启用_04",
+     "name": "启用_04",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "启用_04"
+     },
+     "link": null
+    },
+    {
+     "label": "LoRA_05",
+     "localized_name": "LoRA_05",
+     "name": "LoRA_05",
+     "type": "COMBO",
+     "widget": {
+      "name": "LoRA_05"
+     },
+     "link": null
+    },
+    {
+     "label": "强度_05",
+     "localized_name": "强度_05",
+     "name": "强度_05",
+     "type": "FLOAT",
+     "widget": {
+      "name": "强度_05"
+     },
+     "link": null
+    },
+    {
+     "label": "启用_05",
+     "localized_name": "启用_05",
+     "name": "启用_05",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "启用_05"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "模型",
+     "localized_name": "模型",
+     "name": "模型",
+     "type": "MODEL",
+     "links": [
+      944
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WP_LoRAStackLoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "input_ue_unconnectable": {},
+     "version": "7.8"
+    }
+   },
+   "widgets_values": [
+    "Qwen image 2.1\\p_qwen_image_2.1_8step_v0.1.safetensors",
+    null,
+    1,
+    true,
+    "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    null,
+    1,
+    false,
+    "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    null,
+    1,
+    false,
+    "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    null,
+    1,
+    false,
+    "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    null,
+    1,
+    false
+   ],
+   "widgets_values_named": {
+    "LoRA_01": "Qwen image 2.1\\p_qwen_image_2.1_8step_v0.1.safetensors",
+    "wp_lora_slot_1": null,
+    "强度_01": 1,
+    "启用_01": true,
+    "LoRA_02": "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    "wp_lora_slot_2": null,
+    "强度_02": 1,
+    "启用_02": false,
+    "LoRA_03": "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    "wp_lora_slot_3": null,
+    "强度_03": 1,
+    "启用_03": false,
+    "LoRA_04": "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    "wp_lora_slot_4": null,
+    "强度_04": 1,
+    "启用_04": false,
+    "LoRA_05": "Anime\\anima-turbo-lora-v0.1(1).safetensors",
+    "wp_lora_slot_5": null,
+    "强度_05": 1,
+    "启用_05": false
+   },
+   "color": "#662ad5"
+  },
+  {
+   "id": 1000,
+   "type": "WP_PsdPlanner",
+   "title": "🐳 PSD图层规划",
+   "pos": [
+    -920,
+    2000
+   ],
+   "size": [
+    350,
+    480
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1001
+    },
+    {
+     "name": "qwen模型",
+     "type": "QWENLLAMA",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "规划JSON",
+     "type": "STRING",
+     "links": [
+      1002
+     ]
+    },
+    {
+     "name": "预览图",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WP_PsdPlanner"
+   },
+   "widgets_values": [
+    "详细",
+    "图中每一处可见文字都必须单独拆一层（顶部英文、品牌名、竖排产品字、印章、手写宣传语、小字）",
+    896,
+    4096,
+    0.2,
+    0,
+    "fixed",
+    false,
+    ""
+   ]
+  },
+  {
+   "id": 1001,
+   "type": "WP_TextBox",
+   "title": "✏️ 人工干预（可改JSON后重跑下游）",
+   "pos": [
+    -920,
+    2520
+   ],
+   "size": [
+    350,
+    220
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "文本",
+     "type": "STRING",
+     "link": 1002
+    }
+   ],
+   "outputs": [
+    {
+     "name": "文本",
+     "type": "STRING",
+     "links": [
+      1003
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WP_TextBox"
+   },
+   "widgets_values": [
+    ""
+   ]
+  },
+  {
+   "id": 1002,
+   "type": "WP_PsdLayerExtract",
+   "title": "🐳 PSD图层精抠",
+   "pos": [
+    -920,
+    2780
+   ],
+   "size": [
+    350,
+    290
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "规划JSON",
+     "type": "STRING",
+     "link": 1003
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1004
+    }
+   ],
+   "outputs": [
+    {
+     "name": "图层图像",
+     "type": "IMAGE",
+     "links": [
+      1005
+     ]
+    },
+    {
+     "name": "图层蒙版",
+     "type": "MASK",
+     "links": [
+      1006,
+      1007
+     ]
+    },
+    {
+     "name": "结果JSON",
+     "type": "STRING",
+     "links": [
+      1008,
+      1009
+     ]
+    },
+    {
+     "name": "预览图",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WP_PsdLayerExtract"
+   },
+   "widgets_values": [
+    "",
+    "sam3.1_multiplex_fp16.safetensors",
+    0.3,
+    0.1,
+    false
+   ]
+  },
+  {
+   "id": 1003,
+   "type": "WP_PsdBgInpaint",
+   "title": "🐳 PSD背景补全",
+   "pos": [
+    -920,
+    3120
+   ],
+   "size": [
+    350,
+    160
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1010
+    },
+    {
+     "name": "图层蒙版",
+     "type": "MASK",
+     "link": 1006
+    },
+    {
+     "name": "结果JSON",
+     "type": "STRING",
+     "link": 1008
+    }
+   ],
+   "outputs": [
+    {
+     "name": "红标图",
+     "type": "IMAGE",
+     "links": [
+      1011
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WP_PsdBgInpaint"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 1004,
+   "type": "WP_PsdExport",
+   "title": "🐳 PSD导出",
+   "pos": [
+    -920,
+    3330
+   ],
+   "size": [
+    350,
+    240
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1005
+    },
+    {
+     "name": "图层蒙版",
+     "type": "MASK",
+     "link": 1007
+    },
+    {
+     "name": "结果JSON",
+     "type": "STRING",
+     "link": 1009
+    },
+    {
+     "name": "背景图",
+     "type": "IMAGE",
+     "link": 1012
+    }
+   ],
+   "outputs": [
+    {
+     "name": "PSD路径",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "name": "预览图",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WP_PsdExport"
+   },
+   "widgets_values": [
+    "",
+    "psd_export"
+   ]
+  },
+  {
+   "id": 1005,
+   "type": "WP_PsdSplitter",
+   "title": "🐳 PSD拆解启动器",
+   "pos": [
+    -920,
+    1790
+   ],
+   "size": [
+    350,
+    170
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "WP_PsdSplitter"
+   },
+   "widgets_values": [
+    "PSD 拆解工作流启动器：下拉框选工作流载入；管理工作流可存/覆盖/删"
+   ]
+  }
+ ],
+ "links": [
+  [
+   729,
+   478,
+   0,
+   480,
+   1,
+   "VAE"
+  ],
+  [
+   731,
+   481,
+   0,
+   480,
+   0,
+   "LATENT"
+  ],
+  [
+   745,
+   480,
+   0,
+   487,
+   0,
+   "IMAGE"
+  ],
+  [
+   762,
+   497,
+   0,
+   481,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   763,
+   497,
+   1,
+   481,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   937,
+   483,
+   0,
+   481,
+   0,
+   "MODEL"
+  ],
+  [
+   938,
+   630,
+   0,
+   479,
+   0,
+   "INT"
+  ],
+  [
+   939,
+   630,
+   1,
+   479,
+   1,
+   "INT"
+  ],
+  [
+   942,
+   476,
+   0,
+   635,
+   0,
+   "MODEL"
+  ],
+  [
+   944,
+   636,
+   0,
+   483,
+   0,
+   "MODEL"
+  ],
+  [
+   945,
+   635,
+   0,
+   636,
+   0,
+   "MODEL"
+  ],
+  [
+   949,
+   479,
+   0,
+   481,
+   3,
+   "LATENT"
+  ],
+  [
+   756,
+   477,
+   0,
+   497,
+   0,
+   "CLIP"
+  ],
+  [
+   801,
+   532,
+   0,
+   497,
+   1,
+   "IMAGE"
+  ],
+  [
+   758,
+   478,
+   0,
+   497,
+   4,
+   "VAE"
+  ],
+  [
+   1001,
+   475,
+   0,
+   1000,
+   0,
+   "IMAGE"
+  ],
+  [
+   1002,
+   1000,
+   0,
+   1001,
+   0,
+   "STRING"
+  ],
+  [
+   1003,
+   1001,
+   0,
+   1002,
+   0,
+   "STRING"
+  ],
+  [
+   1004,
+   475,
+   0,
+   1002,
+   1,
+   "IMAGE"
+  ],
+  [
+   1005,
+   1002,
+   0,
+   1004,
+   0,
+   "IMAGE"
+  ],
+  [
+   1006,
+   1002,
+   1,
+   1003,
+   1,
+   "MASK"
+  ],
+  [
+   1007,
+   1002,
+   1,
+   1004,
+   1,
+   "MASK"
+  ],
+  [
+   1008,
+   1002,
+   2,
+   1003,
+   2,
+   "STRING"
+  ],
+  [
+   1009,
+   1002,
+   2,
+   1004,
+   2,
+   "STRING"
+  ],
+  [
+   1010,
+   475,
+   0,
+   1003,
+   0,
+   "IMAGE"
+  ],
+  [
+   1011,
+   1003,
+   0,
+   532,
+   0,
+   "IMAGE"
+  ],
+  [
+   1012,
+   480,
+   0,
+   1004,
+   3,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 2,
+   "title": "Qwen-image21-图像编辑",
+   "bounding": [
+    -540,
+    1890,
+    2621.9283000324667,
+    1436.196010894987
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.4665073802097334,
+   "offset": [
+    864.1323027096514,
+    -1582.6209937837489
+   ]
+  },
+  "frontendVersion": "1.53.6",
+  "VHS_latentpreview": true,
+  "VHS_latentpreviewrate": 0,
+  "VHS_MetadataImage": true,
+  "VHS_KeepIntermediate": true,
+  "ue_links": [],
+  "links_added_by_ue": []
+ },
+ "extensions": {
+  "seed_widgets": {
+   "481": 0
+  }
+ },
+ "version": 0.4
+}

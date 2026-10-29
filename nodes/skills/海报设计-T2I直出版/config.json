@@ -1,0 +1,81 @@
+{
+  "skill_name": "CinematicPosterPromptMaster-T2I",
+  "version": "5.0.0",
+  "output_type": "text_only",
+  "output_format": "qwen_image_2_1_t2i_prompt",
+  "output_language": "zh-CN",
+  "keep_technical_terms_in_english": true,
+  "include_explanations": false,
+  "include_negative_prompt_block": false,
+  "qwen_t2i_compliance": {
+    "enabled": true,
+    "task_type": "text_to_image_generation",
+    "prompt_style": "natural_language_observer_perspective",
+    "forbidden_styles": ["fragmented_tag_pile", "keyword_stuffing"],
+    "location_phrase_navigation": true,
+    "text_quoting_rule": "all_text_in_image_must_be_wrapped_in_double_quotes",
+    "forbidden_content": ["resolution_numbers", "pixel_values"],
+    "token_budget": 1000,
+    "output_json_format": {
+      "rewritten_prompt": "...",
+      "wh_ratio": "9:16"
+    }
+  },
+  "layout_system": {
+    "enabled": true,
+    "types": {
+      "top_bottom": "上下结构：主视觉占据上方，文字信息整齐排列在下方",
+      "centered": "居中/中心式：主体与文字居中垂直排列，视觉锚点在中心",
+      "diagonal": "对角构图：主体位于一角，文字沿对角线分布在另一角",
+      "symmetrical": "对称构图：主视觉与文字沿中轴线左右镜像分布",
+      "enclosed": "包围式构图：文字环绕主体四周，主体被文字包裹",
+      "four_corner": "四角构图：文字拆分为四个区块分布在画面四角，主视觉居中",
+      "full_bleed": "满版/骨骼型：主视觉铺满版面，文字嵌入画面留白处"
+    },
+    "text_hierarchy": {
+      "level_1": "主标题（最大字号，视觉焦点区域）",
+      "level_2": "档期日期/核心宣传语（中等字号，紧邻主标题）",
+      "level_3": "主演/导演信息（小字号，主标题下方或侧边）",
+      "level_4": "出品公司/平台LOGO（最小字号，画面最底部或角落）"
+    },
+    "visual_guide_methods": ["大小对比引导", "颜色对比引导", "线条引导", "图片指向性引导"]
+  },
+  "copywriting_rules": {
+    "enabled": true,
+    "require_user_provided_facts": true,
+    "factual_fields": [
+      "主标题（剧名/电影名）",
+      "档期日期/播出时间",
+      "主演姓名",
+      "导演/编剧等主创信息",
+      "出品公司/播出平台 LOGO 名称"
+    ],
+    "when_user_provides_full_copy": {
+      "action": "embed_verbatim",
+      "rule": "逐字嵌入，不得替换、改写、缩写或翻译"
+    },
+    "when_user_provides_partial_copy": {
+      "action": "use_placeholder",
+      "placeholder_prefix": "【待定】"
+    },
+    "when_user_provides_no_copy": {
+      "action": "generate_example_with_marker",
+      "marker_prefix": "【示例文案，请替换为实际内容】"
+    }
+  },
+  "fine_grained_detailing": {
+    "enabled": true,
+    "character_dimensions": {
+      "expression": "神态（眼神、眉宇、嘴角微表情、情绪张力）",
+      "action": "动作（肢体语言、重心、手部细节、姿态）",
+      "clothing": "服装（款式、材质、剪裁、穿着状态、配饰）",
+      "makeup_hair": "妆容发型（妆面风格、发丝细节、配饰）"
+    },
+    "multi_element_rule": "必须分别描述每个元素的【空间位置 + 神态/状态 + 动作 + 细节特征】。"
+  },
+  "default_aspect_ratios": {
+    "tv_drama_poster": "9:16",
+    "movie_poster": "2:3",
+    "game_poster": "16:9"
+  }
+}
