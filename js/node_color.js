@@ -26,6 +26,7 @@ const NODE_TYPES = [
     "WP_GonggePreset",       // 🐳 WP 宫格预设
     "WP_LoRAStackLoader",   // 🐳 WP Lora堆加载器（仅模型）
     "WP_PromptAgent",                       // 🐳 WP 提示词对话
+    "WP_PromptOptimizer",                   // 🐳 WP 提示词优化
     "WP_ImageComparer",                    // 🐳 WP 图像对比
     "WP_PanoramaView",                     // 🐳 WP 全景图预览
     "WP_TextMerge",                        // 🐳 WP 合并文本
@@ -37,6 +38,7 @@ const NODE_TYPES = [
     "WP_PsdBgInpaint",       // 🐳 WP PSD背景补全
     "WP_PsdExport",          // 🐳 WP PSD导出
     "WP_PsdSplitter",        // 🐳 WP PSD拆解
+    "WP_ThreeImageCombo",    // 🐳 WP 三图组合
     // 注：WP_Annotate（注释节点）是自绘透明便签，不走此列表，
     // 其默认背景色 import 了下方 HEADER_COLOR，改主题色只需改一处。
 ];

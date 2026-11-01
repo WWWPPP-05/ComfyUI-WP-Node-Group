@@ -18,6 +18,7 @@ from .nodes.注释节点 import WPAnnotateNode
 from .nodes.宫格预设节点 import GonggePresetNode
 from .nodes.LoRA堆加载器节点 import LoRAStackLoader
 from .nodes.提示词对话节点 import WpPromptAgent
+from .nodes.提示词优化节点 import WpPromptOptimizer
 from .nodes.图像对比节点 import WPImageComparer
 from .nodes.全景图预览节点 import WPPanoramaView
 from .nodes.合并文本节点 import WPTextMergeNode
@@ -29,6 +30,7 @@ from .nodes.PSD图层精抠节点 import WP_PsdLayerExtract
 from .nodes.PSD背景补全节点 import WP_PsdBgInpaint
 from .nodes.PSD导出节点 import WP_PsdExport
 from .nodes.PSD拆解启动器节点 import WP_PsdSplitter
+from .nodes.三图组合节点 import WPThreeImageCombo
 
 # 导入资产库模块（注册API路由）
 from .nodes import 资产库节点
@@ -50,6 +52,7 @@ NODE_CLASS_MAPPINGS = {
     "WP_GonggePreset": GonggePresetNode,
     "WP_LoRAStackLoader": LoRAStackLoader,
     "WP_PromptAgent": WpPromptAgent,
+    "WP_PromptOptimizer": WpPromptOptimizer,
     "WP_ImageComparer": WPImageComparer,
     "WP_PanoramaView": WPPanoramaView,
     "WP_TextMerge": WPTextMergeNode,
@@ -61,6 +64,7 @@ NODE_CLASS_MAPPINGS = {
     "WP_PsdBgInpaint": WP_PsdBgInpaint,
     "WP_PsdExport": WP_PsdExport,
     "WP_PsdSplitter": WP_PsdSplitter,
+    "WP_ThreeImageCombo": WPThreeImageCombo,
 }
 
 whale_emoji = chr(0x1F433)
@@ -82,6 +86,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WP_GonggePreset": f"{whale_emoji} WP 宫格预设",
     "WP_LoRAStackLoader": f"{whale_emoji} WP Lora堆加载器（仅模型）",
     "WP_PromptAgent": f"{whale_emoji} WP 提示词对话",
+    "WP_PromptOptimizer": f"{whale_emoji} WP 提示词优化",
     "WP_ImageComparer": f"{whale_emoji} WP 图像对比",
     "WP_PanoramaView": f"{whale_emoji} WP 全景图预览",
     "WP_TextMerge": f"{whale_emoji} WP 合并文本",
@@ -93,6 +98,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WP_PsdBgInpaint": f"{whale_emoji} WP PSD背景补全",
     "WP_PsdExport": f"{whale_emoji} WP PSD导出",
     "WP_PsdSplitter": f"{whale_emoji} WP PSD拆解",
+    "WP_ThreeImageCombo": f"{whale_emoji} WP 三图组合",
 }
 
 WEB_DIRECTORY = "./js"
