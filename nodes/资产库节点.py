@@ -5,6 +5,7 @@
 """
 import os
 import json
+import asyncio
 import logging
 from aiohttp import web
 import folder_paths
@@ -16,6 +17,18 @@ from ..asset_output_monitor import output_monitor
 logger = logging.getLogger(__name__)
 
 asset_lib = get_asset_library()
+
+# 缩略图读取/生成的并发上限（防止素材多时大量线程同时压缩图片打满 CPU）
+_thumb_gen_semaphore = asyncio.Semaphore(4)
+
+# 浏览器缓存 30 天：缩略图按 asset_id 寻址且内容不变，切回文件夹时直接用本地缓存
+_THUMB_CACHE_HEADERS = {"Cache-Control": "public, max-age=2592000"}
+
+
+async def _get_thumbnail_in_background(gen_func, asset_id):
+    """把缩略图读取/生成放到后台线程执行，避免 PIL/ffmpeg 阻塞服务器事件循环"""
+    async with _thumb_gen_semaphore:
+        return await asyncio.to_thread(gen_func, asset_id)
 
 
 # ========== 存储位置管理 API ==========
@@ -332,8 +345,9 @@ async def get_assets_by_category(request):
         category_id = request.match_info.get("category_id")
         proj_id = request.query.get("project_id")
         query = request.query.get("q", "")
-        
-        assets = asset_lib.get_assets_by_category(category_id, proj_id, query)
+
+        # 列表构建含大量磁盘检查（每个素材一次），放后台线程避免阻塞事件循环导致切换分类卡顿
+        assets = await asyncio.to_thread(asset_lib.get_assets_by_category, category_id, proj_id, query)
         return web.json_response(assets)
     except Exception as e:
         logger.error(f"[WP资产库] 获取资产失败: {e}", exc_info=True)
@@ -849,14 +863,14 @@ async def export_asset(request):
 async def get_thumbnail(request):
     try:
         asset_id = request.match_info.get("asset_id")
-        
-        # 从内存缓存获取缩略图（不存在则从原图临时生成）
-        thumb_bytes = asset_lib.get_cached_thumbnail(asset_id)
-        
+
+        # 内存缓存 -> 磁盘缓存 -> 现场生成；放后台线程执行并限制并发
+        thumb_bytes = await _get_thumbnail_in_background(asset_lib.get_cached_thumbnail, asset_id)
+
         if not thumb_bytes:
             return web.Response(status=404, text="缩略图不存在")
-        
-        return web.Response(body=thumb_bytes, content_type="image/jpeg")
+
+        return web.Response(body=thumb_bytes, content_type="image/jpeg", headers=_THUMB_CACHE_HEADERS)
     except Exception as e:
         logger.error(f"[WP资产库] 获取缩略图异常: {e}", exc_info=True)
         return web.json_response({"success": False, "error": str(e)}, status=500)
@@ -866,15 +880,15 @@ async def get_thumbnail(request):
 
 @PromptServer.instance.routes.get("/wp_node/asset_library/video_thumbnail/{asset_id}")
 async def get_video_thumbnail(request):
-    """获取视频缩略图（用 ffmpeg 提取第一帧）"""
+    """获取视频缩略图（磁盘缓存优先，缺失时用 ffmpeg 提取第一帧；后台线程执行）"""
     try:
         asset_id = request.match_info.get("asset_id")
-        thumb_bytes = asset_lib.generate_video_thumbnail(asset_id)
-        
+        thumb_bytes = await _get_thumbnail_in_background(asset_lib.generate_video_thumbnail, asset_id)
+
         if not thumb_bytes:
             return web.Response(status=404, text="视频缩略图生成失败")
-        
-        return web.Response(body=thumb_bytes, content_type="image/jpeg")
+
+        return web.Response(body=thumb_bytes, content_type="image/jpeg", headers=_THUMB_CACHE_HEADERS)
     except Exception as e:
         logger.error(f"[WP资产库] 获取视频缩略图异常: {e}", exc_info=True)
         return web.json_response({"success": False, "error": str(e)}, status=500)

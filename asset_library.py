@@ -265,9 +265,18 @@ class AssetLibraryManager:
         
         # 缩略图内存缓存：asset_id -> bytes
         self._thumbnail_cache = {}
+        # 账本内存缓存：素材多时 assets.json 达数 MB，避免每个请求都重新读盘解析（按文件修改时间自动失效）
+        self._data_cache: Optional[Dict] = None
+        self._data_cache_stamp = None
+        self._data_cache_lock = threading.Lock()
+        # 后台缩略图补齐线程的停止标记（素材库位置变更时置位）
+        self._thumb_backfill_stop = False
         # 视频转码状态：asset_id -> {"status": "running"/"done"/"failed", "error": str}
         self._transcode_status: Dict = {}
         self._transcode_lock = threading.Lock()
+
+        # 启动低优先级后台线程：补齐缺失的磁盘缩略图（单线程慢慢补，补完自动退出）
+        threading.Thread(target=self._thumbnail_backfill_worker, daemon=True, name="wp-thumb-backfill").start()
     
     def _init_config(self):
         """初始化配置文件"""
@@ -374,14 +383,37 @@ class AssetLibraryManager:
         return new_data
     
     def _load_data(self) -> Dict:
-        """加载资产数据"""
+        """加载资产数据（带内存缓存：账本文件未被修改时直接复用，不重新读盘解析）"""
+        try:
+            st = os.stat(self.data_path)
+            stamp = (st.st_mtime_ns, st.st_size)
+        except OSError:
+            stamp = None
+
+        with self._data_cache_lock:
+            if self._data_cache is not None and stamp is not None and self._data_cache_stamp == stamp:
+                return self._data_cache
+
         with open(self.data_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    
+            data = json.load(f)
+
+        with self._data_cache_lock:
+            self._data_cache = data
+            self._data_cache_stamp = stamp
+        return data
+
     def _save_data(self, data: Dict):
-        """保存资产数据"""
+        """保存资产数据（写盘后同步刷新内存缓存，省去下次重新解析）"""
         with open(self.data_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        try:
+            st = os.stat(self.data_path)
+            stamp = (st.st_mtime_ns, st.st_size)
+        except OSError:
+            stamp = None
+        with self._data_cache_lock:
+            self._data_cache = data
+            self._data_cache_stamp = stamp
     
     # ========== 存储位置管理 ==========
 
@@ -417,6 +449,11 @@ class AssetLibraryManager:
         self._init_config()
         self._init_data()
         self._thumbnail_cache.clear()
+        # 旧账本缓存作废、停止旧库的后台缩略图补齐
+        with self._data_cache_lock:
+            self._data_cache = None
+            self._data_cache_stamp = None
+        self._thumb_backfill_stop = True
 
     def get_storage_info(self) -> Dict:
         """获取素材库存储信息（是否已配置、路径、占用、剩余空间等）"""
@@ -1520,12 +1557,13 @@ class AssetLibraryManager:
         
         self._save_data(data)
         
-        # 预生成缩略图到内存缓存（仅图片类型）
+        # 预生成缩略图并落盘（仅图片类型）
         if media_type == "image":
             thumb_bytes = self._generate_thumbnail_bytes(dest_file_path)
             if thumb_bytes:
                 self._thumbnail_cache[asset_id] = thumb_bytes
-        
+                self._save_thumbnail_to_disk(dest_file_path, asset_id, thumb_bytes)
+
         return asset_id
     
     def _sanitize_folder_name(self, name: str) -> str:
@@ -1728,41 +1766,85 @@ class AssetLibraryManager:
             }
         return None
     
+    def _thumbnail_backfill_worker(self):
+        """低优先级后台线程：逐个补齐缺失的磁盘缩略图（已存在内存/磁盘缓存的会被跳过），补完自动退出"""
+        time.sleep(15)  # 等 ComfyUI 启动高峰过去再开始
+        try:
+            # 快照图片类素材 ID 列表（账本可能同时被其他线程修改，短暂重试）
+            image_ids = []
+            for attempt in range(3):
+                try:
+                    data = self._load_data()
+                    image_ids = [aid for aid, a in data.get("assets", {}).items()
+                                 if a.get("file_type", "image") == "image"]
+                    break
+                except RuntimeError:
+                    time.sleep(1)
+
+            print(f"[WP资产库] 后台缩略图补齐开始: 检查 {len(image_ids)} 张图片（缺失的将生成并落盘，不影响正常使用）")
+            processed = 0
+            for aid in image_ids:
+                if self._thumb_backfill_stop:
+                    print("[WP资产库] 后台缩略图补齐已停止（素材库位置已变更）")
+                    return
+                self.get_cached_thumbnail(aid)
+                processed += 1
+                time.sleep(0.05)  # 让出 CPU，不与用户操作抢资源
+            print(f"[WP资产库] 后台缩略图补齐完成: 已检查 {processed} 张图片")
+        except Exception as e:
+            print(f"[WP资产库] 后台缩略图补齐异常退出: {e}")
+
+    def _save_thumbnail_to_disk(self, file_path: str, asset_id: str, thumb_bytes: bytes):
+        """缩略图落盘到素材同目录（thumbnail_{id}.jpg）。扫描/删除/移动逻辑均已识别该命名，不会误当素材"""
+        if not thumb_bytes or not file_path:
+            return
+        try:
+            thumb_path = os.path.join(os.path.dirname(file_path), f"thumbnail_{asset_id}.jpg")
+            with open(thumb_path, "wb") as f:
+                f.write(thumb_bytes)
+        except Exception as e:
+            print(f"[WP资产库] 缩略图落盘失败（忽略）: {e}")
+
     def get_cached_thumbnail(self, asset_id: str) -> Optional[bytes]:
-        """获取缩略图 bytes（从内存缓存，不存在则从原图临时生成）。非图片类型返回 None。"""
-        # 先从缓存找
+        """获取缩略图 bytes。查找顺序：内存缓存 -> 磁盘缓存 -> 现场生成（并落盘，重启后无需再生成）。非图片类型返回 None。"""
+        # 1. 内存缓存
         if asset_id in self._thumbnail_cache:
             return self._thumbnail_cache[asset_id]
-        
-        # 缓存没有，检查资产类型
+
         asset_info = self.get_asset_info(asset_id)
         if not asset_info:
             return None
-        
+
         # 非图片类型不生成缩略图
         if asset_info.get("file_type", "image") != "image":
             return None
-        
-        # 尝试用记录的 file_path
+
+        # 尝试用记录的 file_path，不存在则推算（兼容账本路径失效的旧数据）
         file_path = asset_info.get("file_path", "")
-        used_reconstructed = False
         if not file_path or not os.path.exists(file_path):
-            print(f"[WP资产库] 记录路径不存在，尝试推算: {file_path}")
-            # 记录的路径不存在（可能是旧数据），尝试推算新路径
             file_path = self._reconstruct_asset_path(asset_info)
-            used_reconstructed = True
             if not file_path or not os.path.exists(file_path):
-                print(f"[WP资产库] 推算路径也不存在: {file_path}")
+                print(f"[WP资产库] 缩略图源文件不存在: {asset_id}")
                 return None
-        
-        print(f"[WP资产库] 生成缩略图: asset={asset_id}, path={file_path}, 推算={used_reconstructed}")
+
+        # 2. 磁盘缓存
+        disk_path = os.path.join(os.path.dirname(file_path), f"thumbnail_{asset_id}.jpg")
+        if os.path.exists(disk_path):
+            try:
+                with open(disk_path, "rb") as f:
+                    thumb_bytes = f.read()
+                if thumb_bytes:
+                    self._thumbnail_cache[asset_id] = thumb_bytes
+                    return thumb_bytes
+            except Exception as e:
+                print(f"[WP资产库] 读取磁盘缩略图失败（将重新生成）: {e}")
+
+        # 3. 现场生成并落盘
         thumb_bytes = self._generate_thumbnail_bytes(file_path)
         if thumb_bytes:
             self._thumbnail_cache[asset_id] = thumb_bytes
-            print(f"[WP资产库] 缩略图生成成功: {asset_id}, 大小={len(thumb_bytes)} bytes")
-        else:
-            print(f"[WP资产库] 缩略图生成失败: {asset_id}")
-        
+            self._save_thumbnail_to_disk(file_path, asset_id, thumb_bytes)
+
         return thumb_bytes
     
     def _resolve_owner_by_path(self, file_path: str, data: Dict) -> Tuple[Optional[str], Optional[str]]:
@@ -2434,11 +2516,12 @@ class AssetLibraryManager:
                                 known_paths.add(file_path)
                                 new_assets += 1
 
-                                # 预生成图片缩略图
+                                # 预生成图片缩略图并落盘
                                 if media_type == "image":
                                     thumb_bytes = self._generate_thumbnail_bytes(file_path)
                                     if thumb_bytes:
                                         self._thumbnail_cache[asset_id] = thumb_bytes
+                                        self._save_thumbnail_to_disk(file_path, asset_id, thumb_bytes)
                     else:
                         # 项目文件夹下的散文件：统计不入库
                         if is_system_file(sub):
@@ -2584,12 +2667,13 @@ class AssetLibraryManager:
             data["projects"][proj_id]["categories"][cat_id]["assets"].append(asset_id)
             self._save_data(data)
             
-            # 预生成缩略图
+            # 预生成缩略图并落盘
             if media_type == "image":
                 thumb_bytes = self._generate_thumbnail_bytes(file_path)
                 if thumb_bytes:
                     self._thumbnail_cache[asset_id] = thumb_bytes
-            
+                    self._save_thumbnail_to_disk(file_path, asset_id, thumb_bytes)
+
             existing_paths.add(abs_path)
             new_count += 1
         
@@ -2740,24 +2824,34 @@ class AssetLibraryManager:
         video_path = asset_info.get("file_path", "")
         if not video_path or not os.path.exists(video_path):
             return None
-        
+
+        # 磁盘缓存优先（生成过一次就不再抽帧）
+        disk_path = os.path.join(os.path.dirname(video_path), f"thumbnail_{asset_id}.jpg")
+        if os.path.exists(disk_path):
+            try:
+                with open(disk_path, "rb") as f:
+                    return f.read()
+            except Exception:
+                pass
+
         try:
             # 用 ffmpeg 提取第 1 秒的帧
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
                 tmp_path = tmp.name
-            
+
             cmd = [
                 'ffmpeg', '-y', '-ss', '1', '-i', video_path,
                 '-vframes', '1', '-q:v', '3', '-f', 'image2', tmp_path
             ]
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
+
             if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
                 with open(tmp_path, 'rb') as f:
                     thumb_bytes = f.read()
                 os.remove(tmp_path)
                 self._thumbnail_cache[asset_id] = thumb_bytes
+                self._save_thumbnail_to_disk(video_path, asset_id, thumb_bytes)
                 return thumb_bytes
             else:
                 if os.path.exists(tmp_path):

@@ -2424,8 +2424,44 @@ function showCategoryContextMenu(event, categoryId) {
     document.addEventListener('click', closeMenu);
 }
 
+// 素材列表加载序号：快速连续切换分类/搜索时丢弃过期响应，防止旧列表覆盖新列表
+let assetListLoadSeq = 0;
+
+// 缩略图懒加载观察器：卡片进入可视区附近才开始加载缩略图/视频，避免一次发出几百个请求
+let _thumbLazyObserver = null;
+function getThumbLazyObserver() {
+    if (!_thumbLazyObserver) {
+        _thumbLazyObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const el = entry.target;
+                _thumbLazyObserver.unobserve(el);
+
+                const thumbUrl = el.dataset.thumbUrl;
+                if (thumbUrl) {
+                    el.style.backgroundImage = `url("${thumbUrl}")`;
+                    delete el.dataset.thumbUrl;
+                }
+
+                const videoUrl = el.dataset.videoSrc;
+                if (videoUrl) {
+                    const video = el.querySelector("video");
+                    if (video) {
+                        video.src = videoUrl;
+                        video.load();
+                    }
+                    delete el.dataset.videoSrc;
+                }
+            });
+        }, { rootMargin: "300px 0px" });
+    }
+    return _thumbLazyObserver;
+}
+
 // 加载分类下的资产
 async function loadAssetsByCategory(categoryId, searchQuery = "") {
+    const loadSeq = ++assetListLoadSeq;
+
     if (!currentProjectId) {
         const grid = document.getElementById("wp-asset-grid");
         if (grid) {
@@ -2441,7 +2477,9 @@ async function loadAssetsByCategory(categoryId, searchQuery = "") {
         }
         
         const response = await fetch(url);
+        if (loadSeq !== assetListLoadSeq) return; // 期间已切换分类，丢弃过期响应
         const assets = await response.json();
+        if (loadSeq !== assetListLoadSeq) return;
         
         // 按名称排序
         if (assetSortMode === 'asc') {
@@ -2454,6 +2492,7 @@ async function loadAssetsByCategory(categoryId, searchQuery = "") {
         assetListCache = assets;
 
         const grid = document.getElementById("wp-asset-grid");
+        if (_thumbLazyObserver) _thumbLazyObserver.disconnect(); // 清掉上一轮列表的观察目标
         grid.innerHTML = "";
 
         if (assets.length === 0) {
@@ -2476,9 +2515,8 @@ async function loadAssetsByCategory(categoryId, searchQuery = "") {
             thumbDiv.className = "wp-asset-thumb";
             
             if (fileType === "image") {
-                // 图片类型：显示缩略图
-                const timestamp = new Date().getTime();
-                thumbDiv.style.backgroundImage = `url("${ASSET_API_BASE}/thumbnail/${asset.id}?t=${timestamp}")`;
+                // 图片类型：懒加载缩略图（固定 URL + HTTP 缓存，切回文件夹不再重复下载）
+                thumbDiv.dataset.thumbUrl = `${ASSET_API_BASE}/thumbnail/${asset.id}`;
             } else if (fileType === "video") {
                 // 视频类型：嵌入静音播放器 + 控件层
                 thumbDiv.style.position = "relative";
@@ -2492,7 +2530,8 @@ async function loadAssetsByCategory(categoryId, searchQuery = "") {
                 video.preload = "metadata";
                 video.playsInline = true;
                 video.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
-                video.src = `${ASSET_API_BASE}/file/${asset.id}`;
+                // 视频地址存到卡片上，滚动到可视区附近才真正加载（避免几十个视频齐发请求）
+                thumbDiv.dataset.videoSrc = `${ASSET_API_BASE}/file/${asset.id}`;
                 thumbDiv.appendChild(video);
 
                 // HEVC 等编码浏览器解不了画面且不报 error：检测画面宽度为 0，
@@ -2738,6 +2777,11 @@ async function loadAssetsByCategory(categoryId, searchQuery = "") {
 
             grid.appendChild(assetElement);
         });
+
+        // 启动懒加载：只请求进入可视区附近卡片的缩略图/视频
+        const lazyObs = getThumbLazyObserver();
+        grid.querySelectorAll(".wp-asset-thumb[data-thumb-url], .wp-asset-thumb[data-video-src]")
+            .forEach(el => lazyObs.observe(el));
     } catch (error) {
         console.error("[WP资产库] 加载资产失败:", error);
     }
