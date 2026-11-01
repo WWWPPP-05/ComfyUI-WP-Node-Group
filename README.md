@@ -1,15 +1,13 @@
 # 🐳 WP Node Group
 
-WP Node Group 是一个 ComfyUI 自定义节点包，包含 22 个实用节点，涵盖图像加载、提示词管理与预设、资产库管理、简易画板、本地 LLM 推理、全景预览、图像对比、注释便签等综合工作流工具。
+WP Node Group 是一个 ComfyUI 自定义节点包，包含 26 个实用节点，涵盖图像加载、提示词管理与预设、资产库管理、简易画板、本地 LLM 推理、全景预览、图像对比、注释便签、PSD 图层拆解与导出等综合工作流工具。
 
 ##  版本信息
 
-- **当前版本**: v1.5.0
+- **当前版本**: v1.6.0
 - **更新日志**:
-  - ✅ 新增注释节点（🐳 WP 注释节点）
-  - ✅ 支持双击编辑文本内容
-  - ✅ 支持文字对齐、颜色、大小、行距调节
-  - ✅ 支持背景颜色、透明度、圆角调节
+  - ✅ 新增 PSD 拆解管线五件套（图层规划 / 图层精抠 / 背景补全 / 导出 / 拆解启动器）
+  - ⚡ 资产库性能优化（账本内存缓存、缩略图三级缓存、前端懒加载）
 
 ---
 
@@ -242,7 +240,8 @@ API 对图片尺寸有限制（通常最大 2048×2048），本节点会：
 - 支持本地文件扫描同步
 - 支持上传本地图片
 - 悬浮按钮快速打开资产库面板
-- 缩略图内存缓存，不占用磁盘空间
+- 缩略图三级缓存（内存 → 磁盘 → 现场生成），后台线程自动补齐缺失缩略图
+- 素材列表前端懒加载，大量素材下切换分类依然流畅
 
 **使用方式：**
 1. 在节点上右键生成图像 → 选择"保存到资产库"
@@ -426,6 +425,13 @@ CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python --force-reinstall --no
 | 🐳 WP 加载图像（文件夹） | WP_ImageFolderLoad | 按文件夹批量加载图像 |
 | 🐳 WP 图片选择器 | WP_ImageSelector | 从文件夹中挑选图像 |
 | 🐳 WP 简易画板 | WP_SimpleCanvas | 画板涂鸦/图层/分割，输出图像 |
+| 🐳 WP PSD图层规划 | WP_PsdPlanner | PSD 拆解第①站：VLM 语义拆层 |
+| 🐳 WP PSD图层精抠 | WP_PsdLayerExtract | PSD 拆解第③站：SAM3.1 文本概念分割 |
+| 🐳 WP PSD背景补全 | WP_PsdBgInpaint | 合并前景蒙版生成红标图，供 Qwen Image 生成干净背景 |
+| 🐳 WP PSD导出 | WP_PsdExport | PSD 拆解第⑤站（终点）：组装导出可编辑 PSD 文件 |
+| 🐳 WP PSD拆解 | WP_PsdSplitter | PSD 拆解管线启动器 + 管理 API |
+
+> **PSD 拆解管线**：以 `workflows_psd/标准拆解管线.json` 工作流串联五件套节点，实现"单图进、可编辑 PSD 出"的全自动图层拆解。详见《PSD拆解项目_交接文档.md》。
 
 ---
 
@@ -434,9 +440,9 @@ CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python --force-reinstall --no
 ### 方法一：手动安装
 
 1. 将本文件夹复制到 `ComfyUI/custom_nodes/` 目录下
-2. 安装依赖（可选，ComfyUI 通常已包含）：
+2. 安装依赖（ComfyUI 通常已包含前两项；psd-tools 为 PSD 节点必需，缺失会导致插件加载失败）：
    ```bash
-   pip install requests>=2.28.0
+   pip install requests>=2.28.0 psd-tools>=1.12.1
    ```
 3. 重启 ComfyUI
 
@@ -453,15 +459,16 @@ CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python --force-reinstall --no
 
 ```
 Comfyui_WP_Node_Group/
-├── __init__.py                 # 节点注册入口（22 个节点）
-├── asset_library.py            # 资产库核心模块
+├── __init__.py                 # 节点注册入口（26 个节点）
+├── asset_library.py            # 资产库核心模块（账本缓存 + 缩略图三级缓存）
 ├── asset_output_monitor.py     # 输出监控模块
-├── nodes/                      # 节点代码目录（23 个 py 文件）
+├── nodes/                      # 节点代码目录
 │   ├── skills/                 # 提示词对话节点的技能库（支持热重载）
+│   ├── _llama_installer.py     # llama-cpp-python 自动安装器
 │   └── *.py                    # 各节点定义 + 资产库节点.py（API 路由）
 ├── js/                         # 前端扩展（WEB_DIRECTORY，浏览器加载）
 │   ├── node_color.js           # 节点颜色（导出 HEADER_COLOR 主题色）
-│   ├── asset_library.js        # 资产库面板 UI
+│   ├── asset_library.js        # 资产库面板 UI（缩略图懒加载）
 │   ├── prompt_preset_widget.js # 提示词预设 UI
 │   ├── prompt_list.js          # 提示词列表 UI
 │   ├── lora_stack_loader_ui.js # LoRA 堆加载器 UI
@@ -470,18 +477,20 @@ Comfyui_WP_Node_Group/
 │   ├── wp_image_comparer.js    # 图像对比 UI
 │   ├── wp_image_selector.js    # 图片选择器 UI
 │   ├── wp_panorama.js          # 全景图预览 UI
+│   ├── wp_psd_planner.js       # PSD 图层规划 UI
+│   ├── wp_psd_splitter.js      # PSD 拆解启动器 UI
 │   ├── wp_prompt_agent.js      # 提示词对话 UI
 │   ├── wp_simple_canvas.js     # 简易画板 UI
 │   ├── wp_slider.js            # 滑条工具 UI
 │   └── vendor/                 # pannellum 全景库（按需懒加载）
+├── workflows_psd/              # PSD 拆解标准工作流（可一键载入）
 ├── data/                       # 个人数据（预设与图片，已加入 .gitignore）
 │   ├── prompt_presets.json     # 预设数据文件
-│   └── prompt_preset_images/   # 预设配图（31 张）
+│   └── prompt_preset_images/   # 预设配图
 ├── tests/                      # 浏览器端测试（不随页面加载）
-│   └── wp_canvas_tests.js      # 简易画板自动化测试
 ├── wp_asset_library/           # 资产库数据目录（运行时生成）
-├── wp_library_location.json    # 资产库位置指针
-├── wp_output_config.json       # 输出监控配置
+├── wp_library_location.json    # 资产库位置指针（不随插件分发）
+├── wp_output_config.json       # 输出监控配置（不随插件分发）
 ├── .gitignore
 ├── pyproject.toml              # 项目配置
 ├── requirements.txt            # 依赖文件
@@ -500,11 +509,12 @@ Comfyui_WP_Node_Group/
 | `numpy` | 数值计算库（ComfyUI 内置） |
 | `Pillow` | 图像处理库（ComfyUI 内置） |
 | `requests` | HTTP 请求库（API 节点需要） |
-| `llama-cpp-python` | **可选**：仅「WP 模型加载器 / WP 推理节点」需要，未安装时其他节点不受影响 |
+| `psd-tools` | **PSD 导出节点必需**（≥1.12.1，缺失会导致整个插件加载失败） |
+| `llama-cpp-python` | **可选**：仅「WP 模型加载器 / WP 推理节点」需要，检测到缺失时节点会自动安装（见 `nodes/_llama_installer.py`） |
 
-如需手动安装 requests：
+如需手动安装：
 ```bash
-pip install requests>=2.28.0
+pip install requests>=2.28.0 psd-tools>=1.12.1
 ```
 
 ---
@@ -541,6 +551,12 @@ pip install requests>=2.28.0
 ### Q10: 资产库面板的排序按钮怎么用？
 **A**: 点击搜索框右侧的灰色圆形排序按钮，可切换升序（A-Z）和降序（Z-A）排列，再次点击切换排序方向。
 
+### Q11: 安装后所有 WP 节点都不出现 / 插件加载失败？
+**A**: 请先安装 psd-tools：`pip install psd-tools>=1.12.1`。PSD 导出节点在模块加载阶段就需要它，缺失会导致整个插件注册失败，表现为所有 WP 节点都不出现。
+
+### Q12: 资产库素材很多时切换分类卡顿？
+**A**: v1.6.0 已优化：缩略图懒加载（进入可视区才请求）+ 磁盘缓存，首次浏览后再次进入基本秒开。首次使用的素材会在 ComfyUI 启动约 15 秒后由后台线程自动补齐缩略图。
+
 ---
 
 ## 许可证
@@ -554,6 +570,19 @@ WP Node Group Team
 ---
 
 ## 更新日志
+
+### v1.6.0 (2026-11-01)
+- ✨ 新增 PSD 拆解管线 5 个节点：
+  - 🐳 WP PSD图层规划（第①站：VLM 语义拆层）
+  - 🐳 WP PSD图层精抠（第③站：SAM3.1 文本概念分割）
+  - 🐳 WP PSD背景补全（前景蒙版合并红标图，供 Qwen Image 生成干净背景）
+  - 🐳 WP PSD导出（第⑤站：组装导出可编辑 PSD 文件）
+  - 🐳 WP PSD拆解（管线启动器 + 管理 API）
+- ✨ 新增 `workflows_psd/标准拆解管线.json` 一键载入工作流
+- ⚡ 资产库账本内存缓存（按文件修改时间自动失效），大账本不再反复读盘
+- ⚡ 缩略图三级缓存（内存 → 磁盘 → 现场生成），启动后后台线程自动补齐缺失缩略图
+- ⚡ 素材列表前端懒加载，快速连续切换分类不再闪烁卡顿
+- 📦 requirements.txt 新增必需依赖 psd-tools>=1.12.1
 
 ### v1.5.0 (2026-05-30)
 - ✨ 新增 WP_Annotate 注释节点
