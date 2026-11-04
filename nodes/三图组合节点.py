@@ -25,6 +25,14 @@ _PROMPT_FACE = "使用图1参考面部，保留可辨识的五官比例、脸型
 _PROMPT_OUTFIT = "服装参考图2{desc_seg}，准确还原款式、剪裁、配色、面料纹理与装饰细节，使衣物自然贴合图片1人物的身体，不复制图片2的人脸或姿势。"
 _PROMPT_POSE = "动作严格按照图3姿态{desc_seg}及观察角度进行参考，遵循躯干朝向、四肢位置、重心和透视关系，不复制图片3的身份、服装或背景。"
 
+# 姿势库分组 -> 描述前缀（让 AI 明确构图范围：半身/全身/几人）
+_POSE_CAT_PREFIX = {
+    "上半身单人": "上半身，单人",
+    "全身单人·性感系": "全身，单人，性感风格",
+    "全身单人·标准系": "全身，单人",
+    "双人互动": "双人互动",
+}
+
 
 def _clean_path(raw):
     text = (raw or "").strip().strip('"').strip("'").strip()
@@ -102,7 +110,10 @@ def _map_item(it):
         desc = it.get("キーワード", "")
     elif "系統" in it:  # 姿势库结构
         cat = it.get("系統", "")
-        desc = "·".join(x for x in (it.get("ポーズ名", ""), it.get("アングル", "")) if x)
+        angle = (it.get("アングル", "") or "").strip()
+        angle_seg = f"{angle}视角" if angle else ""
+        prefix = _POSE_CAT_PREFIX.get(cat, "")
+        desc = "，".join(x for x in (angle_seg, prefix, it.get("ポーズ名", "")) if x)
     else:
         return None
     file = it.get("サムネ") or it.get("画像") or it.get("原寸") or ""

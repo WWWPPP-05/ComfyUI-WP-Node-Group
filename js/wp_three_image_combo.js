@@ -199,7 +199,7 @@ function refreshCard(node, slot) {
         ui.desc.textContent = slot === "face" ? "已上传 · 不参与随机" : (data.desc || "");
     } else {
         ui.name.textContent = "未选择";
-        ui.desc.textContent = slot === "face" ? "点下方按钮上传或从资产库选用" : "点随机或打开素材库选择";
+        ui.desc.textContent = slot === "face" ? "点按钮上传 · 可直接拖入图片 v5" : "点随机或打开素材库选择";
     }
     updateIntegratedPrompt(node);
 }
@@ -247,6 +247,155 @@ async function randomSlot(node, slot) {
     } catch (e) {
         toast("随机失败：" + e.message, true);
     }
+}
+
+// 判断拖拽数据里是否带脸模可用的内容（素材库素材标记 或 本地文件）
+function faceDragHasPayload(dt) {
+    // 素材库拖拽进行中（由素材卡 dragstart 置位）一律放行，避开 Electron 下自定义类型 types 不可见的问题
+    if (window.__wp3cDragging) return true;
+    if (!dt) return false;
+    const types = Array.from(dt.types || []);
+    return types.includes("application/x-wp3c-asset") || types.includes("Files");
+}
+
+// 统一处理丢到脸模上的数据：优先素材库素材，其次本地图片文件
+async function handleFaceDrop(node, dt) {
+    // 优先读三图组合自己的素材标记，其次读应用级资产库标记；Electron 偶发丢失时退回内存缓存
+    let raw = dt.getData("application/x-wp3c-asset");
+    if (!raw) raw = dt.getData("application/x-wp-asset");
+    if (!raw && window.__wp3cDragBuf) raw = window.__wp3cDragBuf;
+    if (raw) {
+        let d;
+        try { d = JSON.parse(raw); } catch (_) { d = null; }
+        if (!d) { toast("拖拽导入失败：数据无法解析", true); return; }
+        // 兼容两种字段名：三图组合内部用 source，应用级资产库用 type
+        const src = d.source || d.type;
+        try {
+            if (src === "wp_asset") {
+                if (!d.assetId) throw new Error("缺少素材 ID");
+                // 来自 WP 资产库：复制到 input 后选用
+                const res = await fetch("/wp_node/asset_library/asset/" + encodeURIComponent(d.assetId) + "/copy_to_input", { method: "POST" });
+                const j = await res.json().catch(() => ({}));
+                if (!j.success || !j.file_name) throw new Error(j.error || "取用失败");
+                applySlot(node, "face", { name: j.file_name, subfolder: "" });
+                toast("脸模已选用：" + j.file_name);
+            } else if (src === "lib_file") {
+                // 来自服装/姿势素材库：复制到 input 后选用
+                const res = await fetch("/wp_node/three_combo/import_face", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ root: d.root, file: d.file }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!j.success || !j.name) throw new Error(j.error || "导入失败");
+                applySlot(node, "face", { name: j.name, subfolder: "" });
+                toast("已导入为脸模：" + j.name);
+            } else {
+                toast("拖拽导入失败：不支持的素材来源「" + src + "」", true);
+            }
+        } catch (e2) {
+            toast("拖拽导入失败：" + e2.message, true);
+        }
+        return;
+    }
+    // Windows 本地图片文件拖入：走与「上传」按钮相同的上传流程
+    const files = Array.from(dt.files || []).filter((f) => f.type.startsWith("image/"));
+    if (files.length) {
+        await uploadFaceImage(node, files[0]);
+    } else if (dt.files?.length) {
+        toast("只能拖入图片文件", true);
+    } else {
+        toast("拖拽导入失败：拖拽数据为空", true);
+    }
+}
+
+// ========== 全局文件拖放协调（window 捕获阶段） ==========
+// ComfyUI 新版前端把自定义 DOM 部件用绝对定位层覆盖在画布上，节点包裹结构复杂，
+// 普通冒泡式 dragover/drop 事件可能到不了脸模卡片，导致拖拽毫无反应。
+// 这里改为在 window「捕获阶段」监听拖放，并依据坐标判断是否命中某个脸模卡片区域，
+// 从最外层兜底处理 Windows 文件拖入和素材库拖入，稳定且不影响其它节点。
+let _faceDropTargets = [];      // 每个脸模卡片一个目标：{card, imgbox, node}
+let _faceDropActive = null;     // 当前正在拖拽悬停的目标
+let _globalFaceDnDReady = false;
+
+function _faceDropHit(x, y) {
+    for (const t of _faceDropTargets) {
+        if (!t.card.isConnected) continue;
+        const r = t.card.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
+    }
+    return null;
+}
+
+// Electron 下同页自定义拖拽偶发 clientX/Y 为 0，坐标命中会失败，这里退而用事件目标定位卡片
+function _faceDropTargetByEvent(e) {
+    const el = e.target;
+    if (!el || !(el instanceof Element)) return null;
+    for (const t of _faceDropTargets) {
+        if (t.card === el || t.card.contains(el)) return t;
+    }
+    return null;
+}
+
+function _installGlobalFaceDnD() {
+    if (_globalFaceDnDReady) return;
+    _globalFaceDnDReady = true;
+
+    let _faceDiagDone = false;
+
+    // 拖放不预先按 types 过滤：自定义类型（资产库素材）在 dragover 阶段可能不出现在 types 里，
+    // 只要坐标落在脸模卡片上就放行并高亮，落到后代 drop 时再精确解析数据
+    window.addEventListener("dragover", (e) => {
+        // 优先按坐标命中；坐标异常时用事件目标回退定位
+        let t = _faceDropHit(e.clientX, e.clientY);
+        if (!t) t = _faceDropTargetByEvent(e);
+        if (_faceDropActive && _faceDropActive !== t) {
+            _faceDropActive.imgbox.classList.remove("drag-over");
+            _faceDropActive = null;
+        }
+        if (!t) return;
+        // 必须 preventDefault，浏览器才允许在此处放下文件
+        e.preventDefault();
+        try { e.dataTransfer.dropEffect = "copy"; } catch (_) {}
+        _faceDropActive = t;
+        t.imgbox.classList.add("drag-over");
+    }, true);
+
+    window.addEventListener("drop", (e) => {
+        const t = _faceDropHit(e.clientX, e.clientY) || _faceDropTargetByEvent(e) || _faceDropActive;
+        if (!t) return;
+        e.preventDefault();
+        e.stopPropagation();
+        t.imgbox.classList.remove("drag-over");
+        _faceDropActive = null;
+        handleFaceDrop(t.node, e.dataTransfer);
+    }, true);
+
+    // 拖拽整体结束（含取消）时兜底清理高亮
+    window.addEventListener("dragend", () => {
+        if (_faceDropActive) {
+            _faceDropActive.imgbox.classList.remove("drag-over");
+            _faceDropActive = null;
+        }
+        _faceDiagDone = false;
+    }, true);
+
+    // 诊断：检测到带目标的拖拽首次进入页面时，提示一次，便于确认事件是否真的到达
+    window.addEventListener("dragenter", (e) => {
+        if (_faceDiagDone) return;
+        _faceDiagDone = true;
+        const types = Array.from(e.dataTransfer.types || []).join(", ");
+        toast("检测到拖拽，类型：" + (types || "未知"));
+    }, true);
+}
+
+function _registerFaceDropTarget(node, card, imgbox) {
+    _installGlobalFaceDnD();
+    _faceDropTargets.push({ card, imgbox, node });
+}
+
+function _unregisterFaceDropTarget(node) {
+    _faceDropTargets = _faceDropTargets.filter((t) => t.node !== node);
 }
 
 // 脸模本地上传（参考「加载图像」节点流程：系统文件选择框 → /upload/image → 更新节点显示）
@@ -463,14 +612,18 @@ async function openLibDialog(node, slot) {
         });
         card.draggable = true;
         card.addEventListener("dragstart", (e) => {
-            e.dataTransfer.setData("application/x-wp3c-asset",
-                JSON.stringify({ source: "lib_file", root: lib.path, file: item.file }));
+            const buf = JSON.stringify({ source: "lib_file", root: lib.path, file: item.file });
+            e.dataTransfer.setData("application/x-wp3c-asset", buf);
+            window.__wp3cDragBuf = buf;
+            window.__wp3cDragging = true;
             e.dataTransfer.effectAllowed = "copy";
             // 拖拽期间让遮罩不挡鼠标事件并变淡，便于看到下面的节点
             ui.overlay.style.pointerEvents = "none";
             ui.overlay.style.background = "rgba(0,0,0,.25)";
         });
         card.addEventListener("dragend", () => {
+            window.__wp3cDragging = false;
+            window.__wp3cDragBuf = null;
             ui.overlay.style.pointerEvents = "";
             ui.overlay.style.background = "";
         });
@@ -641,14 +794,18 @@ async function openFaceDialog(node) {
                 });
                 card.draggable = true;
                 card.addEventListener("dragstart", (e) => {
-                    e.dataTransfer.setData("application/x-wp3c-asset",
-                        JSON.stringify({ source: "wp_asset", assetId: a.id }));
+                    const buf = JSON.stringify({ source: "wp_asset", assetId: a.id });
+                    e.dataTransfer.setData("application/x-wp3c-asset", buf);
+                    window.__wp3cDragBuf = buf;
+                    window.__wp3cDragging = true;
                     e.dataTransfer.effectAllowed = "copy";
                     // 拖拽期间让遮罩不挡鼠标事件并变淡，便于看到下面的节点
                     ui.overlay.style.pointerEvents = "none";
                     ui.overlay.style.background = "rgba(0,0,0,.25)";
                 });
                 card.addEventListener("dragend", () => {
+                    window.__wp3cDragging = false;
+                    window.__wp3cDragBuf = null;
                     ui.overlay.style.pointerEvents = "";
                     ui.overlay.style.background = "";
                 });
@@ -704,7 +861,7 @@ function buildNodeUI(node) {
     hint.className = "wp3c-hint";
     const hintText = document.createElement("div");
     hintText.className = "wp3c-hint-text";
-    hintText.textContent = "1 脸模 → 2 服装 → 3 姿势 · 上传的脸模不参与随机";
+    hintText.textContent = "1 脸模 → 2 服装 → 3 姿势 · 上传的脸模不参与随机 · v5";
     const randAll = document.createElement("button");
     randAll.className = "wp3c-btn primary";
     randAll.type = "button";
@@ -782,46 +939,26 @@ function buildNodeUI(node) {
 
         card.append(head, imgbox, name, desc, btns);
         if (slot === "face") {
-            // 接收来自素材库弹窗的拖拽：直接把该素材设为脸模
-            imgbox.addEventListener("dragover", (e) => {
-                if (e.dataTransfer.types.includes("application/x-wp3c-asset")) {
+            // 注册到全局 window 捕获阶段拖放协调器：ComfyUI 新版前端的 DOM 层级会拦住
+            // 普通冒泡式 dragover/drop，必须从最外层按坐标兜底才能稳定接收文件拖入
+            _registerFaceDropTarget(node, card, imgbox);
+            // 下面 DOM 级监听作为补充（事件若能正常到达卡片时提供高亮与处理）
+            card.addEventListener("dragover", (e) => {
+                if (faceDragHasPayload(e.dataTransfer)) {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = "copy";
                     imgbox.classList.add("drag-over");
                 }
             });
-            imgbox.addEventListener("dragleave", () => imgbox.classList.remove("drag-over"));
-            imgbox.addEventListener("drop", async (e) => {
+            card.addEventListener("dragleave", (e) => {
+                // 在卡片内子元素间移动也会触发 dragleave，仅在真正离开卡片时取消高亮
+                if (!card.contains(e.relatedTarget)) imgbox.classList.remove("drag-over");
+            });
+            card.addEventListener("drop", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 imgbox.classList.remove("drag-over");
-                const raw = e.dataTransfer.getData("application/x-wp3c-asset");
-                if (!raw) return;
-                let d;
-                try { d = JSON.parse(raw); } catch (_) { return; }
-                try {
-                    if (d.source === "wp_asset") {
-                        // 来自 WP 资产库：复制到 input 后选用
-                        const res = await fetch("/wp_node/asset_library/asset/" + encodeURIComponent(d.assetId) + "/copy_to_input", { method: "POST" });
-                        const j = await res.json().catch(() => ({}));
-                        if (!j.success || !j.file_name) throw new Error(j.error || "取用失败");
-                        applySlot(node, "face", { name: j.file_name, subfolder: "" });
-                        toast("脸模已选用：" + j.file_name);
-                    } else if (d.source === "lib_file") {
-                        // 来自服装/姿势素材库：复制到 input 后选用
-                        const res = await fetch("/wp_node/three_combo/import_face", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ root: d.root, file: d.file }),
-                        });
-                        const j = await res.json().catch(() => ({}));
-                        if (!j.success || !j.name) throw new Error(j.error || "导入失败");
-                        applySlot(node, "face", { name: j.name, subfolder: "" });
-                        toast("已导入为脸模：" + j.name);
-                    }
-                } catch (e2) {
-                    toast("拖拽导入失败：" + e2.message, true);
-                }
+                await handleFaceDrop(node, e.dataTransfer);
             });
         }
         stopCanvasDrag(card);
@@ -856,6 +993,23 @@ function buildNodeUI(node) {
     promptBox.append(promptHead, promptText);
     node._wp3cPromptText = promptText;
 
+    // 注册节点级拖放接口（新旧前端通用的官方机制，ComfyUI「加载图像」节点同款）：
+    // 拖文件悬停整个节点时高亮，松手导入为脸模；覆盖 DOM 卡片没盖住的区域（如节点标题栏）。
+    // dragover 必须 preventDefault 浏览器才允许在此放下（canvas 路径上没人替我们做这件事）
+    // 卡片区域由上面的 drop 优先处理（preventDefault 后节点级接口不会再触发，不会重复上传）
+    node.onDragOver = (e) => {
+        if (faceDragHasPayload(e.dataTransfer)) {
+            e.preventDefault?.();
+            return true;
+        }
+        return false;
+    };
+    node.onDragDrop = async (e) => {
+        if (!faceDragHasPayload(e.dataTransfer)) return false;
+        await handleFaceDrop(node, e.dataTransfer);
+        return true;
+    };
+
     root.append(hint, cards, promptBox);
     node._wp3cPrompt = promptBox;
     node.addDOMWidget("wp_three_combo_ui", "wp_three_combo_custom", root, {
@@ -873,6 +1027,7 @@ function buildNodeUI(node) {
     node.onRemoved = function () {
         node._wp3cRO?.disconnect();
         node._wp3cRO = null;
+        _unregisterFaceDropTarget(node);
         return origOnRemoved?.apply(this, arguments);
     };
 
