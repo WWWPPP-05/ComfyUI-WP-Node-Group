@@ -1,6 +1,6 @@
 /**
- * 🐳 WP 三图组合节点 前端
- * 节点卡片界面 + 素材库弹窗（服装/姿势）+ 脸模弹窗（本地上传/WP资产库）+ 随机组合
+ * 🐳 WP 三图组合节点 前端（四图版：脸模 + 服装 + 姿势 + 发型）
+ * 节点卡片界面 + 素材库弹窗（浏览/搜索/大图查看/描述编辑）+ 脸模弹窗 + 随机组合 + 库开关（端口隐藏）
  */
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
@@ -9,15 +9,20 @@ const NODE_NAME = "WP_ThreeImageCombo";
 
 const SLOTS = {
     face: { index: 0, title: "1 · 脸模", color: "#f0c24b", widget: "脸模文件" },
-    outfit: { index: 1, title: "2 · 服装", color: "#6ea8ff", widget: "服装选择", pathWidget: "服装库路径", libName: "服装库" },
-    pose: { index: 2, title: "3 · 姿势", color: "#ff9e5e", widget: "姿势选择", pathWidget: "姿势库路径", libName: "姿势库" },
+    outfit: { index: 1, title: "2 · 服装", color: "#6ea8ff", widget: "服装选择", lib: "outfit", libName: "服装库", toggleWidget: "服装库开关" },
+    pose: { index: 2, title: "3 · 姿势", color: "#ff9e5e", widget: "姿势选择", lib: "pose", libName: "姿势库", toggleWidget: "姿势库开关" },
+    hair: { index: 3, title: "4 · 发型", color: "#7ed39a", widget: "发型选择", lib: "hair", libName: "发型库", toggleWidget: "发型库开关" },
 };
+const LIB_SLOTS = ["outfit", "pose", "hair"];
+// 节点完整输出端口序列（用于加载旧工作流后自愈被隐藏端口导致缺失/错位的 outputs）
+const FULL_OUTPUTS = [["脸模图像", "IMAGE"], ["服装图像", "IMAGE"], ["姿势图像", "IMAGE"], ["发型图像", "IMAGE"], ["整合提示词", "STRING"]];
 
 // 整合提示词模板（与后端 三图组合节点.py 保持一致）
 const PROMPT_TPL = {
     face: "使用图1参考面部，保留可辨识的五官比例、脸型、肤色与发型，不沿用图片1的服装和动作。",
     outfit: "服装参考图2{seg}，准确还原款式、剪裁、配色、面料纹理与装饰细节，使衣物自然贴合图片1人物的身体，不复制图片2的人脸或姿势。",
     pose: "动作严格按照图3姿态{seg}及观察角度进行参考，遵循躯干朝向、四肢位置、重心和透视关系，不复制图片3的身份、服装或背景。",
+    hair: "发型参考图4{seg}，准确还原发型的轮廓、长度、卷度、刘海形态与颜色，使发型自然贴合图片1人物的头型与发际线，不复制图片4的人脸、表情或头部姿态。",
 };
 
 // ---------- 样式 ----------
@@ -34,12 +39,21 @@ function ensureStyle() {
 .wp3c-btn { border:1px solid #343a44; background:#1a1e24; color:#e9ecf1; border-radius:8px; padding:5px 12px;
     font-size:12px; cursor:pointer; white-space:nowrap; transition:background .15s,border-color .15s; }
 .wp3c-btn:hover { background:#232831; border-color:#4a525f; }
+.wp3c-btn:disabled { opacity:.45; cursor:not-allowed; background:#1a1e24; border-color:#272c34; }
 .wp3c-btn.primary { background:#2c4a78; border-color:#3d6ab0; }
 .wp3c-btn.primary:hover { background:#35588f; }
 .wp3c-cards { display:flex; gap:8px; align-items:stretch; }
 .wp3c-card { flex:1 1 0; min-width:0; background:#1a1e24; border:1px solid #272c34; border-radius:12px;
-    display:flex; flex-direction:column; overflow:hidden; }
+    display:flex; flex-direction:column; overflow:hidden; transition:opacity .2s, filter .2s; }
+.wp3c-card.wp3c-off { opacity:.45; filter:saturate(.35); }
 .wp3c-card-head { display:flex; align-items:center; gap:6px; padding:6px 10px; font-size:13px; font-weight:700; color:#111418; }
+.wp3c-card-title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wp3c-tg { margin-left:auto; width:34px; height:18px; border-radius:999px; border:1px solid rgba(0,0,0,.25);
+    background:#8d97a5; position:relative; cursor:pointer; padding:0; flex:0 0 auto; transition:background .15s; }
+.wp3c-tg::after { content:""; position:absolute; top:1px; left:1px; width:14px; height:14px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:left .15s; }
+.wp3c-tg.wp3c-tg-on { background:#2f9e63; }
+.wp3c-tg.wp3c-tg-on::after { left:17px; }
 .wp3c-card-imgbox { position:relative; height:var(--wp3c-img-h, 190px); background:#0d0f12;
     display:flex; align-items:center; justify-content:center; transition:height .25s ease; }
 .wp3c-card-imgbox img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
@@ -50,13 +64,12 @@ function ensureStyle() {
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .wp3c-card-btns { display:flex; gap:6px; padding:6px 10px 10px; }
 .wp3c-card-btns .wp3c-btn { flex:1 1 0; padding:4px 6px; font-size:12px; }
+.wp3c-card-btns .wp3c-btn.wp3c-icon { flex:0 0 auto; padding:4px 11px; }
 .wp3c-prompt { margin-top:8px; background:#1a1e24; border:1px solid #272c34; border-radius:10px; padding:8px 12px; }
 .wp3c-prompt-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; margin-bottom:5px; }
 .wp3c-prompt-head .wp3c-btn { padding:3px 10px; font-size:11px; }
 .wp3c-prompt-text { font-size:12px; color:#c3cad6; line-height:1.65; white-space:pre-wrap; word-break:break-all;
     user-select:text; max-height:130px; overflow-y:auto; }
-.wp3c-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:12px; color:#8fb4ff; background:rgba(13,15,18,.6); }
 
 /* ===== 弹窗 ===== */
 .wp3c-overlay { position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,.62);
@@ -91,25 +104,76 @@ function ensureStyle() {
 .wp3c-item-name { padding:6px 9px 2px; font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wp3c-item-desc { padding:0 9px 8px; font-size:11px; color:#a3abb8; line-height:1.5; min-height:32px;
     white-space:pre-line; word-break:break-all; }
+.wp3c-item-desc .wp3c-nodesc { color:#5b6370; font-style:italic; }
 .wp3c-card-imgbox.drag-over { outline:2px dashed #f0c24b; outline-offset:-2px; background:rgba(240,194,75,.10); }
 .wp3c-dlg-body { flex:1 1 auto; display:flex; min-height:0; }
 .wp3c-preview { width:300px; flex:0 0 300px; border-left:1px solid #272c34; background:#101317;
     padding:12px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
 .wp3c-preview-empty { margin:auto; text-align:center; color:#6c7482; font-size:12px; line-height:1.8; padding:0 8px; }
 .wp3c-preview-id { font-size:14px; font-weight:700; word-break:break-all; }
-.wp3c-preview-imgbox { flex:1 1 auto; min-height:0; background:#0d0f12; border:1px solid #272c34;
+.wp3c-preview-imgbox { flex:1 1 auto; min-height:120px; background:#0d0f12; border:1px solid #272c34;
     border-radius:10px; overflow-y:auto; }
 .wp3c-preview-imgbox img { display:block; width:100%; height:auto; }
 .wp3c-preview-desc { font-size:12px; color:#c3cad6; line-height:1.6; white-space:pre-line; word-break:break-all; }
+.wp3c-preview-desc textarea { width:100%; min-height:90px; background:#0d0f12; border:1px solid #343a44;
+    border-radius:8px; color:#e9ecf1; padding:8px; font-size:12px; line-height:1.6; outline:none; resize:vertical;
+    font-family:inherit; }
+.wp3c-preview-desc textarea:focus { border-color:#3d6ab0; }
+.wp3c-preview-editbtns { display:flex; gap:6px; }
+.wp3c-preview-editbtns .wp3c-btn { flex:1 1 0; padding:4px 6px; font-size:12px; }
 .wp3c-preview-tip { font-size:11px; color:#6c7482; line-height:1.6; margin-top:auto; }
 .wp3c-empty { grid-column:1/-1; text-align:center; color:#6c7482; font-size:13px; padding:60px 0; }
 .wp3c-more { grid-column:1/-1; text-align:center; padding:10px 0 2px; }
 .wp3c-more button { background:#1a1e24; border:1px solid #343a44; color:#a3abb8; border-radius:8px;
     padding:6px 18px; font-size:12px; cursor:pointer; }
-.wp3c-toast { position:fixed; left:50%; bottom:40px; transform:translateX(-50%); z-index:100000;
+
+/* ===== 大图查看模态（复刻原 index.html 放大查看） ===== */
+.wp3c-viewer { position:fixed; inset:0; z-index:100001; background:rgba(0,0,0,.88);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+    font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif; }
+.wp3c-viewer-stage { flex:1 1 auto; width:100%; display:flex; align-items:center; justify-content:center;
+    min-height:0; padding:24px 64px 0; }
+.wp3c-viewer-stage img { max-width:100%; max-height:100%; object-fit:contain; }
+.wp3c-viewer-nav { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:64px;
+    border:1px solid #343a44; background:rgba(26,30,36,.8); color:#e9ecf1; font-size:26px; cursor:pointer;
+    border-radius:10px; }
+.wp3c-viewer-nav:hover { background:#2a2f38; }
+.wp3c-viewer-nav.l { left:10px; }
+.wp3c-viewer-nav.r { right:10px; }
+.wp3c-viewer-close { position:absolute; top:14px; right:16px; width:38px; height:38px; border-radius:9px;
+    border:1px solid #343a44; background:rgba(26,30,36,.8); color:#e9ecf1; font-size:16px; cursor:pointer; }
+.wp3c-viewer-info { flex:0 0 auto; max-width:min(900px,90vw); padding:0 16px 20px; text-align:center;
+    color:#c3cad6; font-size:13px; line-height:1.7; }
+.wp3c-viewer-info .wp3c-vid { font-weight:700; color:#e9ecf1; font-size:15px; word-break:break-all; }
+.wp3c-viewer-info .wp3c-vdesc { white-space:pre-line; word-break:break-all; color:#a3abb8; }
+.wp3c-viewer-info .wp3c-vcount { color:#6c7482; font-size:11px; }
+
+.wp3c-toast { position:fixed; left:50%; bottom:40px; transform:translateX(-50%); z-index:100002;
     background:#2a2f38; border:1px solid #4a525f; color:#e9ecf1; padding:10px 20px; border-radius:10px;
     font-size:13px; font-family:system-ui,"Segoe UI","Microsoft YaHei",sans-serif; box-shadow:0 8px 24px rgba(0,0,0,.4); }
 .wp3c-toast.err { background:#3a2020; border-color:#6b3030; }
+
+/* ===== 收藏心形按钮（缩略图右上角） ===== */
+.wp3c-fav { position:absolute; top:8px; right:8px; width:32px; height:32px; border-radius:50%; padding:0;
+    border:1px solid #343a44; background:rgba(13,15,18,.78); color:#8d97a5; font-size:17px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:color .15s, border-color .15s, background .15s, transform .1s; }
+.wp3c-fav:hover { color:#ff5470; border-color:#ff5470; transform:scale(1.1); }
+.wp3c-fav.on { color:#ff5470; border-color:#c73a52; background:rgba(255,84,112,.14); }
+.wp3c-fav:disabled { opacity:.55; cursor:wait; transform:none; }
+
+/* ===== 随机切换设置面板 ===== */
+.wp3c-cfg-dialog { width:min(480px,92vw); max-height:min(640px,86vh); background:#14171c; border:1px solid #343a44;
+    border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.5); display:flex; flex-direction:column; overflow:hidden;
+    color:#e9ecf1; }
+.wp3c-cfg-tip { font-size:12px; color:#a3abb8; padding:0 18px 10px; line-height:1.6; }
+.wp3c-cfg-list { flex:1 1 auto; overflow-y:auto; padding:0 12px 10px; display:flex; flex-direction:column; gap:6px; }
+.wp3c-cfg-row { display:flex; align-items:center; justify-content:space-between; gap:10px; background:#1a1e24;
+    border:1px solid #272c34; border-radius:10px; padding:9px 12px; cursor:pointer; transition:border-color .12s; }
+.wp3c-cfg-row:hover { border-color:#4a525f; }
+.wp3c-cfg-label { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wp3c-cfg-foot { display:flex; gap:8px; padding:10px 14px 14px; }
+.wp3c-cfg-foot .wp3c-btn { flex:1 1 0; padding:7px 10px; }
 `;
     document.head.appendChild(style);
 }
@@ -142,13 +206,21 @@ function readWidgetJSON(widget) {
     }
 }
 
+function isSlotEnabled(node, slot) {
+    const meta = SLOTS[slot];
+    if (!meta?.toggleWidget) return true;
+    const v = getWidget(node, meta.toggleWidget)?.value;
+    // 旧工作流没有该 widget 时视为开启
+    return v !== false && v !== "false";
+}
+
 function slotPreviewURL(node, slot, data) {
     if (slot === "face") {
         return api.apiURL("/view") + "?filename=" + encodeURIComponent(data.name || "") +
             "&subfolder=" + encodeURIComponent(data.subfolder || "") + "&type=input";
     }
-    const root = (getWidget(node, SLOTS[slot].pathWidget)?.value || "").trim();
-    return "/wp_node/three_combo/image?root=" + encodeURIComponent(root) +
+    // 节点卡片加载原图（不带 preview=1，避免把 300px 缩略图当素材显示）
+    return "/wp_node/three_combo/image?lib=" + SLOTS[slot].lib +
         "&file=" + encodeURIComponent(data.file || "");
 }
 
@@ -162,7 +234,45 @@ function applySlot(node, slot, data) {
     window.dispatchEvent(new MouseEvent("mouseup"));
 }
 
-// 根据节点可用高度计算三张图片的显示区高度：总高 − 顶部提示 − 底部提示词区 − 间距 = 卡片区，
+// ---------- 库开关：卡片状态（端口与连线不再变动，关闭的库由后端输出 None） ----------
+
+// 加载旧工作流后自愈：旧版方案保存的 outputs 可能缺少 slot 或带 hidden=true，这里统一补齐并恢复显示
+function restoreFullOutputs(node) {
+    if (!Array.isArray(node.outputs)) return;
+    for (let i = 0; i < FULL_OUTPUTS.length; i++) {
+        const [name, type] = FULL_OUTPUTS[i];
+        if (node.outputs[i]?.name === name) continue;
+        node.addOutput(name, type);
+        const fresh = node.outputs.pop();
+        node.outputs.splice(i, 0, fresh);
+    }
+    for (const slot of LIB_SLOTS) {
+        const out = node.outputs[SLOTS[slot].index];
+        if (out?.hidden) out.hidden = false;
+    }
+}
+
+function setSlotEnabled(node, slot, enabled) {
+    const w = getWidget(node, SLOTS[slot].toggleWidget);
+    if (w) w.value = enabled;
+    const ui = node._wp3cUI?.[slot];
+    if (ui) {
+        ui.card.classList.toggle("wp3c-off", !enabled);
+        ui.toggle.classList.toggle("wp3c-tg-on", enabled);
+        ui.toggle.title = enabled ? "点击关闭该素材库（关闭后该库输出为空）" : "点击开启该素材库";
+        ui.randBtn.disabled = !enabled;
+        ui.libBtn.disabled = !enabled;
+    }
+    updateIntegratedPrompt(node);
+    node.setDirtyCanvas(true, true);
+    window.dispatchEvent(new MouseEvent("mouseup"));
+}
+
+function syncAllToggles(node) {
+    restoreFullOutputs(node);
+}
+
+// 根据节点可用高度计算四张图片的显示区高度：总高 − 顶部提示 − 底部提示词区 − 间距 = 卡片区，
 // 卡片区再减去卡片内固定部分（标题/名称/描述/按钮），结果限制在 120~500px 保证清晰且不溢出
 const IMG_MIN_H = 120;
 const IMG_MAX_H = 500;
@@ -186,6 +296,35 @@ function layoutCards(node) {
     }
 }
 
+// 心形按钮状态统一渲染（节点卡片与素材库弹窗共用）
+function applyFavState(btn, fav) {
+    btn.style.display = "";
+    btn.className = "wp3c-fav" + (fav ? " on" : "");
+    btn.textContent = fav ? "♥" : "♡";
+    btn.title = fav ? "点击取消收藏" : "点击收藏";
+    btn.dataset.fav = fav ? "1" : "";
+}
+
+// 异步查询当前选中素材的收藏状态并更新节点卡片上的心形（换素材/随机/弹窗收藏后自动跟随）
+async function refreshCardFav(node, slot) {
+    const ui = node._wp3cUI?.[slot];
+    if (!ui?.favBtn) return;
+    const meta = SLOTS[slot];
+    const data = readWidgetJSON(getWidget(node, meta.widget));
+    const seq = (ui.favSeq = (ui.favSeq || 0) + 1);
+    if (!data.file) { ui.favBtn.style.display = "none"; return; }
+    try {
+        const res = await fetch("/wp_node/three_combo/favorite?lib=" + meta.lib +
+            "&file=" + encodeURIComponent(data.file));
+        const j = await res.json().catch(() => ({ success: false }));
+        if (ui.favSeq !== seq) return; // 过期响应，丢弃
+        if (j.success) applyFavState(ui.favBtn, !!j.fav);
+        else ui.favBtn.style.display = "none";
+    } catch (e) {
+        if (ui.favSeq === seq) ui.favBtn.style.display = "none";
+    }
+}
+
 function refreshCard(node, slot) {
     const ui = node._wp3cUI?.[slot];
     if (!ui) return;
@@ -199,48 +338,55 @@ function refreshCard(node, slot) {
         ui.desc.textContent = slot === "face" ? "已上传 · 不参与随机" : (data.desc || "");
     } else {
         ui.name.textContent = "未选择";
-        ui.desc.textContent = slot === "face" ? "点按钮上传 · 可直接拖入图片 v5" : "点随机或打开素材库选择";
+        ui.desc.textContent = slot === "face" ? "点按钮上传 · 可直接拖入图片" : "点随机或打开素材库选择";
     }
+    if (slot !== "face") refreshCardFav(node, slot);
     updateIntegratedPrompt(node);
 }
 
 function updateIntegratedPrompt(node) {
     const box = node._wp3cPromptText;
     if (!box) return;
-    const outfit = readWidgetJSON(getWidget(node, SLOTS.outfit.widget));
-    const pose = readWidgetJSON(getWidget(node, SLOTS.pose.widget));
-    const seg = (d) => { d = (d || "").trim(); return d ? "（" + d + "）" : ""; };
+    const seg = (slot) => {
+        const d = (readWidgetJSON(getWidget(node, SLOTS[slot].widget)).desc || "").trim();
+        return d ? "（" + d + "）" : "";
+    };
     box.textContent = [
         PROMPT_TPL.face,
-        PROMPT_TPL.outfit.replace("{seg}", seg(outfit.desc)),
-        PROMPT_TPL.pose.replace("{seg}", seg(pose.desc)),
+        ...(isSlotEnabled(node, "outfit") ? [PROMPT_TPL.outfit.replace("{seg}", seg("outfit"))] : []),
+        ...(isSlotEnabled(node, "pose") ? [PROMPT_TPL.pose.replace("{seg}", seg("pose"))] : []),
+        ...(isSlotEnabled(node, "hair") ? [PROMPT_TPL.hair.replace("{seg}", seg("hair"))] : []),
     ].join(" ");
 }
 
 // ---------- 素材库数据 ----------
 
-async function ensureLibrary(node, slot) {
-    const path = (getWidget(node, SLOTS[slot].pathWidget)?.value || "").trim();
+async function ensureLibrary(node, slot, force) {
     const cache = node._wp3cLibs?.[slot];
-    if (cache && cache.path === path) return cache;
-    const res = await fetch("/wp_node/three_combo/library?path=" + encodeURIComponent(path));
+    if (!force && cache && cache.items) return cache;
+    const res = await fetch("/wp_node/three_combo/library?lib=" + SLOTS[slot].lib);
     const j = await res.json().catch(() => ({ success: false, error: "服务器返回异常" }));
     if (!j.success) throw new Error(j.error || "素材库读取失败");
-    const lib = { path, items: j.items || [], categories: j.categories || [], total: j.total || 0 };
+    const lib = { items: j.items || [], categories: j.categories || [], total: j.total || 0,
+        random_disabled: j.random_disabled || [] };
     (node._wp3cLibs ||= {})[slot] = lib;
     return lib;
 }
 
 async function randomSlot(node, slot) {
+    if (!isSlotEnabled(node, slot)) return;
     try {
         const lib = await ensureLibrary(node, slot);
-        if (!lib.items.length) { toast(SLOTS[slot].libName + "里没有可用素材", true); return; }
+        // 随机池排除「随机设置」里被关闭的分类
+        const disabled = lib.random_disabled || [];
+        const pool = disabled.length ? lib.items.filter((it) => !disabled.includes(it.cat)) : lib.items;
+        if (!pool.length) { toast(SLOTS[slot].libName + "里没有可随机的素材（相关分类可能已被关闭）", true); return; }
         const cur = readWidgetJSON(getWidget(node, SLOTS[slot].widget)).file;
-        let pick = lib.items[Math.floor(Math.random() * lib.items.length)];
-        if (lib.items.length > 1) {
+        let pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pool.length > 1) {
             let guard = 0;
             while (pick.file === cur && guard++ < 20) {
-                pick = lib.items[Math.floor(Math.random() * lib.items.length)];
+                pick = pool[Math.floor(Math.random() * pool.length)];
             }
         }
         applySlot(node, slot, pick);
@@ -280,11 +426,11 @@ async function handleFaceDrop(node, dt) {
                 applySlot(node, "face", { name: j.file_name, subfolder: "" });
                 toast("脸模已选用：" + j.file_name);
             } else if (src === "lib_file") {
-                // 来自服装/姿势素材库：复制到 input 后选用
+                // 来自服装/姿势/发型素材库：复制到 input 后选用
                 const res = await fetch("/wp_node/three_combo/import_face", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ root: d.root, file: d.file }),
+                    body: JSON.stringify({ lib: d.lib, file: d.file }),
                 });
                 const j = await res.json().catch(() => ({}));
                 if (!j.success || !j.name) throw new Error(j.error || "导入失败");
@@ -341,8 +487,6 @@ function _installGlobalFaceDnD() {
     if (_globalFaceDnDReady) return;
     _globalFaceDnDReady = true;
 
-    let _faceDiagDone = false;
-
     // 拖放不预先按 types 过滤：自定义类型（资产库素材）在 dragover 阶段可能不出现在 types 里，
     // 只要坐标落在脸模卡片上就放行并高亮，落到后代 drop 时再精确解析数据
     window.addEventListener("dragover", (e) => {
@@ -377,15 +521,6 @@ function _installGlobalFaceDnD() {
             _faceDropActive.imgbox.classList.remove("drag-over");
             _faceDropActive = null;
         }
-        _faceDiagDone = false;
-    }, true);
-
-    // 诊断：检测到带目标的拖拽首次进入页面时，提示一次，便于确认事件是否真的到达
-    window.addEventListener("dragenter", (e) => {
-        if (_faceDiagDone) return;
-        _faceDiagDone = true;
-        const types = Array.from(e.dataTransfer.types || []).join(", ");
-        toast("检测到拖拽，类型：" + (types || "未知"));
     }, true);
 }
 
@@ -466,34 +601,210 @@ function buildDialog() {
 
 const BATCH = 120; // 网格分批渲染，一次 120 张，滚动到底自动追加
 
-// 填充右侧悬停预览面板（data 为空时显示占位提示）
-function setPreview(preview, data) {
-    preview.innerHTML = "";
-    if (!data) {
-        const empty = document.createElement("div");
-        empty.className = "wp3c-preview-empty";
-        empty.innerHTML = "鼠标悬停左侧素材<br>这里会放大显示对应图像和提示词";
-        preview.appendChild(empty);
-        return;
-    }
-    const id = document.createElement("div");
-    id.className = "wp3c-preview-id";
-    id.textContent = data.id || "";
-    const imgbox = document.createElement("div");
-    imgbox.className = "wp3c-preview-imgbox";
-    const img = document.createElement("img");
-    img.src = data.src || "";
-    imgbox.appendChild(img);
-    const desc = document.createElement("div");
-    desc.className = "wp3c-preview-desc";
-    desc.textContent = data.desc || "";
-    const tip = document.createElement("div");
-    tip.className = "wp3c-preview-tip";
-    tip.textContent = data.tip || "";
-    preview.append(id, imgbox, desc, tip);
+// 直接加载图片（素材均为本地小图，分批渲染本身已控制单批数量，无需懒加载）
+function lazyImg(imgEl, url) {
+    imgEl.src = url;
+    return imgEl;
 }
 
-function makeGridScroller(dlg) {
+// ---------- 大图查看模态（复刻原 index.html 的放大查看：左右键/Esc 切换） ----------
+
+function openViewer(meta, items, startIndex) {
+    const ov = document.createElement("div");
+    ov.className = "wp3c-viewer";
+    const stage = document.createElement("div");
+    stage.className = "wp3c-viewer-stage";
+    const img = document.createElement("img");
+    const navL = document.createElement("button");
+    navL.className = "wp3c-viewer-nav l";
+    navL.textContent = "‹";
+    navL.title = "上一张（←）";
+    const navR = document.createElement("button");
+    navR.className = "wp3c-viewer-nav r";
+    navR.textContent = "›";
+    navR.title = "下一张（→）";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "wp3c-viewer-close";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "关闭（Esc）";
+    const info = document.createElement("div");
+    info.className = "wp3c-viewer-info";
+    stage.append(img);
+    ov.append(stage, navL, navR, closeBtn, info);
+    document.body.appendChild(ov);
+
+    let idx = startIndex;
+    const show = () => {
+        const it = items[idx];
+        if (!it) return;
+        img.src = "/wp_node/three_combo/image?lib=" + meta.lib + "&file=" + encodeURIComponent(it.file);
+        info.innerHTML = "";
+        const idEl = document.createElement("div");
+        idEl.className = "wp3c-vid";
+        idEl.textContent = it.id || it.file;
+        const descEl = document.createElement("div");
+        descEl.className = "wp3c-vdesc";
+        descEl.textContent = it.desc || "（暂无描述）";
+        const cntEl = document.createElement("div");
+        cntEl.className = "wp3c-vcount";
+        cntEl.textContent = (idx + 1) + " / " + items.length + "　← → 切换 · Esc 关闭";
+        info.append(idEl, descEl, cntEl);
+    };
+    const step = (d) => { idx = (idx + d + items.length) % items.length; show(); };
+    const close = () => {
+        document.removeEventListener("keydown", onKey);
+        ov.remove();
+    };
+    const onKey = (e) => {
+        if (e.key === "ArrowLeft") step(-1);
+        else if (e.key === "ArrowRight") step(1);
+        else if (e.key === "Escape") close();
+    };
+    navL.addEventListener("click", () => step(-1));
+    navR.addEventListener("click", () => step(1));
+    closeBtn.addEventListener("click", close);
+    ov.addEventListener("pointerdown", (e) => { if (e.target === ov) close(); });
+    document.addEventListener("keydown", onKey);
+    show();
+}
+
+// ---------- 随机切换设置面板（按分类开关控制随机池） ----------
+
+// 从节点卡片打开随机设置：库数据未加载时先取一次再打开面板
+async function openRandomConfigForNode(node, slot) {
+    try {
+        const lib = await ensureLibrary(node, slot);
+        openRandomConfigDialog(lib, SLOTS[slot]);
+    } catch (e) {
+        toast("读取" + SLOTS[slot].libName + "失败：" + e.message, true);
+    }
+}
+
+function openRandomConfigDialog(lib, meta) {
+    const overlay = document.createElement("div");
+    overlay.className = "wp3c-overlay";
+    overlay.style.zIndex = "100000";
+    const dlg = document.createElement("div");
+    dlg.className = "wp3c-cfg-dialog";
+    overlay.appendChild(dlg);
+
+    const close = () => { overlay.remove(); document.removeEventListener("keydown", esc); };
+    const esc = (e) => { if (e.key === "Escape") close(); };
+    overlay.addEventListener("pointerdown", (e) => { if (e.target === overlay) close(); });
+    document.addEventListener("keydown", esc);
+
+    const head = document.createElement("div");
+    head.className = "wp3c-dlg-head";
+    head.style.paddingBottom = "4px";
+    const title = document.createElement("div");
+    title.className = "wp3c-dlg-title";
+    title.textContent = "⚙ " + meta.libName + " · 随机切换设置";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "wp3c-dlg-close";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "关闭（Esc）";
+    closeBtn.addEventListener("click", close);
+    head.append(title, closeBtn);
+
+    const tip = document.createElement("div");
+    tip.className = "wp3c-cfg-tip";
+    tip.textContent = "关闭某个文件夹后，「随机」不再抽到该文件夹的素材；浏览和搜索不受影响。";
+
+    const list = document.createElement("div");
+    list.className = "wp3c-cfg-list";
+
+    const foot = document.createElement("div");
+    foot.className = "wp3c-cfg-foot";
+    const allOn = document.createElement("button");
+    allOn.className = "wp3c-btn";
+    allOn.type = "button";
+    allOn.textContent = "全部开启";
+    allOn.addEventListener("click", () => apply([]));
+    const done = document.createElement("button");
+    done.className = "wp3c-btn primary";
+    done.type = "button";
+    done.textContent = "完成";
+    done.addEventListener("click", close);
+    foot.append(allOn, done);
+
+    dlg.append(head, tip, list, foot);
+    document.body.appendChild(overlay);
+
+    const isOff = (cat) => (lib.random_disabled || []).includes(cat);
+    const render = () => {
+        for (const [cat, tg] of toggles) {
+            const on = !isOff(cat);
+            tg.classList.toggle("wp3c-tg-on", on);
+            tg.title = on ? "点击关闭（该分类不参与随机）" : "点击开启（该分类参与随机）";
+        }
+    };
+
+    let saving = false;
+    const save = async (nd) => {
+        if (saving) return;
+        saving = true;
+        try {
+            const res = await fetch("/wp_node/three_combo/random_config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lib: meta.lib, disabled: nd }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!j.success) throw new Error(j.error || "保存失败");
+            toast("随机设置已保存");
+        } catch (e) {
+            toast("保存失败：" + e.message, true);
+        } finally {
+            saving = false;
+        }
+    };
+    // 先更新本地缓存再保存：节点上点「随机」立即按新开关生效，无需重新打开弹窗
+    const apply = (nd) => {
+        lib.random_disabled = nd;
+        render();
+        save(nd);
+    };
+
+    const toggles = new Map();
+    for (const c of lib.categories || []) {
+        const row = document.createElement("div");
+        row.className = "wp3c-cfg-row";
+        const label = document.createElement("div");
+        label.className = "wp3c-cfg-label";
+        label.textContent = c.name + " · " + c.count + " 张";
+        label.title = c.name;
+        const tg = document.createElement("button");
+        tg.className = "wp3c-tg";
+        tg.type = "button";
+        toggles.set(c.name, tg);
+        row.append(label, tg);
+        row.addEventListener("click", () => {
+            const nd = (lib.random_disabled || []).filter((x) => x !== c.name);
+            if (!isOff(c.name)) nd.push(c.name);  // 当前开启 → 点击关闭
+            apply(nd);
+        });
+        list.appendChild(row);
+    }
+    render();
+}
+
+// ---------- 服装/姿势/发型素材库弹窗 ----------
+
+async function openLibDialog(node, slot) {
+    const meta = SLOTS[slot];
+    const ui = buildDialog();
+    ui.title.textContent = "🗂 " + meta.libName + " · 选择素材";
+    ui.sub.textContent = "点击卡片选用 · 双击放大查看 · 悬停右侧可编辑描述";
+
+    // 工具栏：搜索框 + 状态
+    const search = document.createElement("input");
+    search.className = "wp3c-search";
+    search.placeholder = "搜索编号或描述关键词…";
+    const status = document.createElement("div");
+    status.className = "wp3c-status";
+    status.textContent = "读取中…";
+    ui.toolbar.append(search, status);
+
     // 左侧素材网格 + 右侧悬停预览面板
     const body = document.createElement("div");
     body.className = "wp3c-dlg-body";
@@ -501,12 +812,126 @@ function makeGridScroller(dlg) {
     grid.className = "wp3c-grid";
     const preview = document.createElement("div");
     preview.className = "wp3c-preview";
-    setPreview(preview, null);
     body.append(grid, preview);
-    dlg.appendChild(body);
+    ui.dlg.appendChild(body);
 
-    const state = { items: [], rendered: 0, observer: null, preview };
+    // ---- 右侧预览面板：常驻结构，悬停更新内容，支持编辑描述并持久化 ----
+    const pvId = document.createElement("div");
+    pvId.className = "wp3c-preview-id";
+    const pvImgbox = document.createElement("div");
+    pvImgbox.className = "wp3c-preview-imgbox";
+    const pvDesc = document.createElement("div");
+    pvDesc.className = "wp3c-preview-desc";
+    const pvBtns = document.createElement("div");
+    pvBtns.className = "wp3c-preview-editbtns";
+    const pvEdit = document.createElement("button");
+    pvEdit.className = "wp3c-btn";
+    pvEdit.type = "button";
+    pvEdit.textContent = "✎ 编辑描述";
+    pvEdit.disabled = true;
+    pvBtns.append(pvEdit);
+    const pvTip = document.createElement("div");
+    pvTip.className = "wp3c-preview-tip";
+    pvTip.innerHTML = "点击卡片选用 · 双击放大查看<br>描述保存后立即生效并写入素材库";
+    const pvEmpty = document.createElement("div");
+    pvEmpty.className = "wp3c-preview-empty";
+    pvEmpty.innerHTML = "鼠标悬停左侧素材<br>这里会放大显示对应图像和提示词";
+    const showPvEmpty = () => {
+        pvId.style.display = pvImgbox.style.display = pvDesc.style.display = pvBtns.style.display = "none";
+        pvEmpty.style.display = "";
+    };
+    const showPvContent = () => {
+        pvEmpty.style.display = "none";
+        pvId.style.display = pvImgbox.style.display = pvDesc.style.display = pvBtns.style.display = "";
+    };
+    preview.append(pvEmpty, pvId, pvImgbox, pvDesc, pvBtns, pvTip);
+    showPvEmpty();
 
+    let curItem = null;       // 当前悬停的素材
+    let editing = false;      // 是否处于描述编辑态
+    let editTa = null;        // 描述编辑输入框
+
+    const setPreview = (item) => {
+        curItem = item;
+        if (editing) {
+            editing = false;
+            editTa = null;
+            cancelBtn.remove();
+        }
+        pvEdit.textContent = "✎ 编辑描述";
+        pvEdit.disabled = !item;
+        if (!item) { showPvEmpty(); return; }
+        showPvContent();
+        pvId.textContent = item.id || item.file;
+        pvImgbox.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = "/wp_node/three_combo/image?lib=" + meta.lib + "&file=" + encodeURIComponent(item.file) + "&preview=1";
+        pvImgbox.appendChild(img);
+        pvDesc.textContent = item.desc || "（暂无描述）";
+    };
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "wp3c-btn";
+    cancelBtn.type = "button";
+    cancelBtn.textContent = "✕ 取消";
+    cancelBtn.addEventListener("click", () => setPreview(curItem));
+
+    // 同一个按钮两种状态：未编辑时点击进入编辑，编辑中点击保存
+    pvEdit.addEventListener("click", async () => {
+        if (!curItem) return;
+        if (!editing) {
+            editing = true;
+            pvDesc.innerHTML = "";
+            editTa = document.createElement("textarea");
+            editTa.value = curItem.desc || "";
+            pvDesc.appendChild(editTa);
+            pvEdit.textContent = "💾 保存";
+            pvBtns.appendChild(cancelBtn);
+            editTa.focus();
+            return;
+        }
+        const desc = (editTa?.value || "").trim();
+        pvEdit.disabled = true;
+        try {
+            const res = await fetch("/wp_node/three_combo/describe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lib: meta.lib, file: curItem.file, desc }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!j.success) throw new Error(j.error || "保存失败");
+            curItem.desc = desc;
+            // 同步更新网格卡片上的描述（保持滚动位置，不整页重建）
+            for (const el of grid.querySelectorAll(".wp3c-item")) {
+                if (el.dataset.file === curItem.file) {
+                    const d = el.querySelector(".wp3c-item-desc");
+                    if (d) {
+                        d.innerHTML = "";
+                        if (desc) {
+                            d.textContent = desc;
+                        } else {
+                            const s = document.createElement("span");
+                            s.className = "wp3c-nodesc";
+                            s.textContent = "暂无描述 · 弹窗内可编辑";
+                            d.appendChild(s);
+                        }
+                    }
+                }
+            }
+            // 若该素材正是节点当前选中的，同步 widget 与界面提示词
+            const sel = readWidgetJSON(getWidget(node, meta.widget));
+            if (sel.file === curItem.file) applySlot(node, slot, { ...sel, desc });
+            setPreview(curItem);
+            toast("描述已保存");
+        } catch (e) {
+            toast("保存失败：" + e.message, true);
+        } finally {
+            pvEdit.disabled = false;
+        }
+    });
+
+    // ---- 网格分批渲染 ----
+    const state = { items: [], rendered: 0, moreBtn: null };
     const renderBatch = () => {
         const frag = document.createDocumentFragment();
         const end = Math.min(state.rendered + BATCH, state.items.length);
@@ -524,14 +949,12 @@ function makeGridScroller(dlg) {
             state.moreBtn = moreBox;
         }
     };
-
     grid.addEventListener("scroll", () => {
         if (state.moreBtn && grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 300) {
             state.moreBtn.click();
         }
     });
-
-    state.reset = (nodes, emptyText) => {
+    const resetGrid = (nodes, emptyText) => {
         grid.innerHTML = "";
         state.items = nodes;
         state.rendered = 0;
@@ -546,73 +969,79 @@ function makeGridScroller(dlg) {
         renderBatch();
         grid.scrollTop = 0;
     };
-    return state;
-}
-
-// 直接加载图片（素材均为本地小图，分批渲染本身已控制单批数量，无需懒加载）
-function lazyImg(imgEl, url) {
-    imgEl.src = url;
-    return imgEl;
-}
-
-// ---------- 服装/姿势素材库弹窗 ----------
-
-async function openLibDialog(node, slot) {
-    const meta = SLOTS[slot];
-    const ui = buildDialog();
-    ui.title.textContent = "🗂 " + meta.libName + " · 选择素材";
-    ui.sub.textContent = "";
-
-    // 工具栏：搜索框 + 状态
-    const search = document.createElement("input");
-    search.className = "wp3c-search";
-    search.placeholder = "搜索编号或描述关键词…";
-    const status = document.createElement("div");
-    status.className = "wp3c-status";
-    status.textContent = "读取中…";
-    ui.toolbar.append(search, status);
-
-    const gridState = makeGridScroller(ui.dlg);
 
     let lib = null;
     let curCat = "";
     let curKeyword = "";
+    let viewItems = []; // 当前过滤结果（大图模态按它切换）
     const currentFile = () => readWidgetJSON(getWidget(node, meta.widget)).file;
 
-    const cardFor = (item) => {
+    const cardFor = (item, viewIndex) => {
         const card = document.createElement("div");
         card.className = "wp3c-item" + (item.file === currentFile() ? " selected" : "");
+        card.dataset.file = item.file;
         const box = document.createElement("div");
         box.className = "wp3c-item-img";
         const img = lazyImg(document.createElement("img"),
-            "/wp_node/three_combo/image?root=" + encodeURIComponent(lib.path) +
-            "&file=" + encodeURIComponent(item.file));
+            "/wp_node/three_combo/image?lib=" + meta.lib +
+            "&file=" + encodeURIComponent(item.file) + "&preview=1");
         box.appendChild(img);
+        // 右上角心形收藏按钮：红心=已收藏（副本在收藏文件夹），灰心=未收藏
+        const favBtn = document.createElement("button");
+        favBtn.type = "button";
+        applyFavState(favBtn, !!item.fav);
+        box.appendChild(favBtn);
+        favBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (favBtn.disabled) return;
+            const want = !item.fav;
+            favBtn.disabled = true;
+            try {
+                const res = await fetch("/wp_node/three_combo/favorite", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ lib: meta.lib, file: item.file, fav: want }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!j.success) throw new Error(j.error || "操作失败");
+                item.fav = want;
+                applyFavState(favBtn, want);
+                toast(want ? "已收藏：" + (item.id || item.file) : "已取消收藏：" + (item.id || item.file));
+                refreshCardFav(node, slot); // 若收藏/取消的正是节点当前选中素材，同步节点卡片心形
+            } catch (err) {
+                toast("收藏操作失败：" + err.message, true);
+            } finally {
+                favBtn.disabled = false;
+            }
+        });
+        favBtn.addEventListener("dblclick", (e) => e.stopPropagation());
         const name = document.createElement("div");
         name.className = "wp3c-item-name";
         name.textContent = item.id || item.file;
         name.title = item.id || item.file;
         const desc = document.createElement("div");
         desc.className = "wp3c-item-desc";
-        desc.textContent = item.desc || "";
+        if (item.desc) {
+            desc.textContent = item.desc;
+        } else {
+            const s = document.createElement("span");
+            s.className = "wp3c-nodesc";
+            s.textContent = "暂无描述 · 弹窗内可编辑";
+            desc.appendChild(s);
+        }
         desc.title = item.desc || "";
         card.append(box, name, desc);
         card.addEventListener("click", () => {
             applySlot(node, slot, item);
             ui.close();
         });
+        // 双击放大查看原图（复刻原 index.html 的放大浏览）
+        card.addEventListener("dblclick", () => openViewer(meta, viewItems, viewIndex));
         // 悬停预览 + 可拖拽到节点的「1 · 脸模」区域
-        card.addEventListener("mouseenter", () => {
-            setPreview(gridState.preview, {
-                src: img.src,
-                id: item.id || item.file,
-                desc: item.desc || "",
-                tip: "点击选用 · 也可直接拖到节点的「1 · 脸模」区域",
-            });
-        });
+        card.addEventListener("mouseenter", () => setPreview(item));
         card.draggable = true;
         card.addEventListener("dragstart", (e) => {
-            const buf = JSON.stringify({ source: "lib_file", root: lib.path, file: item.file });
+            const buf = JSON.stringify({ source: "lib_file", lib: meta.lib, file: item.file });
             e.dataTransfer.setData("application/x-wp3c-asset", buf);
             window.__wp3cDragBuf = buf;
             window.__wp3cDragging = true;
@@ -633,12 +1062,12 @@ async function openLibDialog(node, slot) {
     const refresh = () => {
         if (!lib) return;
         const kw = curKeyword.toLowerCase();
-        const items = lib.items.filter((it) =>
+        viewItems = lib.items.filter((it) =>
             (!curCat || it.cat === curCat) &&
             (!kw || (it.id || "").toLowerCase().includes(kw) || (it.desc || "").toLowerCase().includes(kw))
         );
-        status.textContent = items.length + " 个素材" + (curCat ? " · " + curCat : "");
-        gridState.reset(items.map(cardFor), "没有匹配的素材，换个关键词或分类试试");
+        status.textContent = viewItems.length + " 个素材" + (curCat ? " · " + curCat : "");
+        resetGrid(viewItems.map((it, i) => cardFor(it, i)), "没有匹配的素材，换个关键词或分类试试");
     };
 
     const renderTabs = () => {
@@ -661,13 +1090,14 @@ async function openLibDialog(node, slot) {
     });
 
     try {
-        lib = await ensureLibrary(node, slot);
-        ui.sub.textContent = lib.path;
+        // 弹窗每次打开都强制刷新：收藏状态、分类开关、描述始终显示服务器最新数据
+        lib = await ensureLibrary(node, slot, true);
+        ui.sub.textContent = meta.libName + " · " + lib.total + " 张素材";
         renderTabs();
         refresh();
     } catch (e) {
         status.textContent = "";
-        gridState.reset([], "读取失败：" + e.message);
+        resetGrid([], "读取失败：" + e.message);
     }
     search.focus();
 }
@@ -697,7 +1127,7 @@ async function openFaceDialog(node) {
     catTabs.className = "wp3c-tabs";
     catTabs.style.padding = "0 18px 8px";
     ui.dlg.append(bar, catTabs);
-    const gridState = makeGridScroller(ui.dlg);
+    const gridState = makeFaceGrid(ui.dlg);
 
     let projectsLoaded = false;
     const loadProjects = async () => {
@@ -785,7 +1215,7 @@ async function openFaceDialog(node) {
                 card.addEventListener("click", () => useAsset(a, card));
                 // 悬停预览 + 可拖拽到节点的「1 · 脸模」区域
                 card.addEventListener("mouseenter", () => {
-                    setPreview(gridState.preview, {
+                    setFacePreview(gridState.preview, {
                         src: img.src,
                         id: a.name || a.file_name || "",
                         desc: a.description || "",
@@ -841,13 +1271,95 @@ async function openFaceDialog(node) {
     loadProjects();
 }
 
+// 脸模弹窗的网格 + 右侧悬停预览（与素材库弹窗同款结构）
+function setFacePreview(preview, data) {
+    preview.innerHTML = "";
+    if (!data) {
+        const empty = document.createElement("div");
+        empty.className = "wp3c-preview-empty";
+        empty.innerHTML = "鼠标悬停左侧素材<br>这里会放大显示对应图像和提示词";
+        preview.appendChild(empty);
+        return;
+    }
+    const id = document.createElement("div");
+    id.className = "wp3c-preview-id";
+    id.textContent = data.id || "";
+    const imgbox = document.createElement("div");
+    imgbox.className = "wp3c-preview-imgbox";
+    const img = document.createElement("img");
+    img.src = data.src || "";
+    imgbox.appendChild(img);
+    const desc = document.createElement("div");
+    desc.className = "wp3c-preview-desc";
+    desc.textContent = data.desc || "";
+    const tip = document.createElement("div");
+    tip.className = "wp3c-preview-tip";
+    tip.textContent = data.tip || "";
+    preview.append(id, imgbox, desc, tip);
+}
+
+function makeFaceGrid(dlg) {
+    const body = document.createElement("div");
+    body.className = "wp3c-dlg-body";
+    const grid = document.createElement("div");
+    grid.className = "wp3c-grid";
+    const preview = document.createElement("div");
+    preview.className = "wp3c-preview";
+    setFacePreview(preview, null);
+    body.append(grid, preview);
+    dlg.appendChild(body);
+
+    const state = { items: [], rendered: 0, observer: null, preview };
+
+    const renderBatch = () => {
+        const frag = document.createDocumentFragment();
+        const end = Math.min(state.rendered + BATCH, state.items.length);
+        for (let i = state.rendered; i < end; i++) frag.appendChild(state.items[i]);
+        state.rendered = end;
+        grid.appendChild(frag);
+        if (state.rendered < state.items.length && !state.moreBtn) {
+            const moreBox = document.createElement("div");
+            moreBox.className = "wp3c-more";
+            const btn = document.createElement("button");
+            btn.textContent = "加载更多（" + (state.items.length - state.rendered) + "）";
+            btn.addEventListener("click", () => { moreBox.remove(); state.moreBtn = null; renderBatch(); });
+            moreBox.appendChild(btn);
+            grid.appendChild(moreBox);
+            state.moreBtn = moreBox;
+        }
+    };
+
+    grid.addEventListener("scroll", () => {
+        if (state.moreBtn && grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 300) {
+            state.moreBtn.click();
+        }
+    });
+
+    state.reset = (nodes, emptyText) => {
+        grid.innerHTML = "";
+        state.items = nodes;
+        state.rendered = 0;
+        state.moreBtn = null;
+        if (!nodes.length && emptyText) {
+            const empty = document.createElement("div");
+            empty.className = "wp3c-empty";
+            empty.textContent = emptyText;
+            grid.appendChild(empty);
+            return;
+        }
+        renderBatch();
+        grid.scrollTop = 0;
+    };
+    return state;
+}
+
 // ---------- 节点界面 ----------
 
 function buildNodeUI(node) {
     ensureStyle();
 
-    // 隐藏三个数据 widget（值仍会随工作流保存）
-    for (const key of ["脸模文件", "服装选择", "姿势选择"]) {
+    // 隐藏七个数据/开关 widget（值仍会随工作流保存，界面用自定义控件展示）
+    for (const key of ["脸模文件", "服装选择", "姿势选择", "发型选择", "服装库开关", "姿势库开关", "发型库开关"]) {
         const w = getWidget(node, key);
         if (w) { w.hidden = true; w.computeSize = () => [0, 0]; }
     }
@@ -861,17 +1373,19 @@ function buildNodeUI(node) {
     hint.className = "wp3c-hint";
     const hintText = document.createElement("div");
     hintText.className = "wp3c-hint-text";
-    hintText.textContent = "1 脸模 → 2 服装 → 3 姿势 · 上传的脸模不参与随机 · v5";
+    hintText.textContent = "1 脸模 → 2 服装 → 3 姿势 → 4 发型 · 开关可临时关闭某个库 · 上传的脸模不参与随机";
     const randAll = document.createElement("button");
     randAll.className = "wp3c-btn primary";
     randAll.type = "button";
-    randAll.textContent = "🎲 随机组合（服装+姿势）";
-    randAll.title = "同时随机更换服装和姿势";
-    randAll.addEventListener("click", () => { randomSlot(node, "outfit"); randomSlot(node, "pose"); });
+    randAll.textContent = "🎲 随机组合（服装+姿势+发型）";
+    randAll.title = "同时随机更换开启中的素材库素材";
+    randAll.addEventListener("click", () => {
+        for (const slot of LIB_SLOTS) if (isSlotEnabled(node, slot)) randomSlot(node, slot);
+    });
     stopCanvasDrag(randAll);
     hint.append(hintText, randAll);
 
-    // 三张卡片
+    // 四张卡片
     const cards = document.createElement("div");
     cards.className = "wp3c-cards";
     node._wp3cCards = cards;
@@ -890,7 +1404,7 @@ function buildNodeUI(node) {
     });
     root.appendChild(fileInput);
 
-    for (const slot of ["face", "outfit", "pose"]) {
+    for (const slot of ["face", "outfit", "pose", "hair"]) {
         const meta = SLOTS[slot];
         const card = document.createElement("div");
         card.className = "wp3c-card";
@@ -898,7 +1412,23 @@ function buildNodeUI(node) {
         const head = document.createElement("div");
         head.className = "wp3c-card-head";
         head.style.background = meta.color;
-        head.textContent = meta.title;
+        const headTitle = document.createElement("span");
+        headTitle.className = "wp3c-card-title";
+        headTitle.textContent = meta.title;
+        head.appendChild(headTitle);
+
+        // 库开关（服装/姿势/发型卡片）：关闭后端口隐藏、按钮失效、不输出
+        let toggle = null;
+        if (slot !== "face") {
+            toggle = document.createElement("button");
+            toggle.className = "wp3c-tg wp3c-tg-on";
+            toggle.type = "button";
+            stopCanvasDrag(toggle);
+            toggle.addEventListener("click", () => {
+                setSlotEnabled(node, slot, !isSlotEnabled(node, slot));
+            });
+            head.appendChild(toggle);
+        }
 
         const imgbox = document.createElement("div");
         imgbox.className = "wp3c-card-imgbox";
@@ -907,6 +1437,40 @@ function buildNodeUI(node) {
         const empty = document.createElement("div");
         empty.className = "wp3c-card-empty";
         imgbox.append(img, empty);
+
+        // 收藏心形（仅素材库卡片：脸模为上传图，不属于素材库，不适用）
+        let favBtn = null;
+        if (slot !== "face") {
+            favBtn = document.createElement("button");
+            favBtn.className = "wp3c-fav";
+            favBtn.type = "button";
+            favBtn.style.display = "none";
+            favBtn.title = "收藏状态";
+            imgbox.appendChild(favBtn);
+            stopCanvasDrag(favBtn);
+            favBtn.addEventListener("click", async () => {
+                if (favBtn.disabled) return;
+                const data = readWidgetJSON(getWidget(node, meta.widget));
+                if (!data.file) return;
+                const want = favBtn.dataset.fav !== "1";
+                favBtn.disabled = true;
+                try {
+                    const res = await fetch("/wp_node/three_combo/favorite", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ lib: meta.lib, file: data.file, fav: want }),
+                    });
+                    const j = await res.json().catch(() => ({}));
+                    if (!j.success) throw new Error(j.error || "操作失败");
+                    applyFavState(favBtn, want);
+                    toast(want ? "已收藏：" + (data.id || data.file) : "已取消收藏：" + (data.id || data.file));
+                } catch (e) {
+                    toast("收藏操作失败：" + e.message, true);
+                } finally {
+                    favBtn.disabled = false;
+                }
+            });
+        }
 
         const name = document.createElement("div");
         name.className = "wp3c-card-name";
@@ -925,16 +1489,20 @@ function buildNodeUI(node) {
             stopCanvasDrag(b);
             return b;
         };
+        let randBtn = null, libBtn = null;
         if (slot === "face") {
             btns.append(
                 mkBtn("⬆ 上传", "选择本地图片上传为脸模", () => fileInput.click()),
                 mkBtn("🗃 素材库", "从 WP 资产库选用脸模", () => openFaceDialog(node))
             );
         } else {
-            btns.append(
-                mkBtn("🎲 随机", "随机更换一张" + (slot === "outfit" ? "服装" : "姿势"), () => randomSlot(node, slot)),
-                mkBtn("🗃 素材库", "打开" + meta.libName + "手动选择", () => openLibDialog(node, slot))
-            );
+            randBtn = mkBtn("🎲 随机", "随机更换一张" + (slot === "outfit" ? "服装" : slot === "pose" ? "姿势" : "发型"),
+                () => randomSlot(node, slot));
+            libBtn = mkBtn("🗃 素材库", "打开" + meta.libName + "手动选择", () => openLibDialog(node, slot));
+            const cfgBtn = mkBtn("⚙", meta.libName + "随机切换设置（选择参与随机的分类）",
+                () => openRandomConfigForNode(node, slot));
+            cfgBtn.classList.add("wp3c-icon");
+            btns.append(randBtn, libBtn, cfgBtn);
         }
 
         card.append(head, imgbox, name, desc, btns);
@@ -963,10 +1531,13 @@ function buildNodeUI(node) {
         }
         stopCanvasDrag(card);
         cards.appendChild(card);
-        node._wp3cUI[slot] = { img, empty, name, desc };
+        node._wp3cUI[slot] = {
+            img, empty, name, desc, card, toggle, favBtn,
+            randBtn: randBtn || { disabled: false }, libBtn: libBtn || { disabled: false },
+        };
     }
 
-    // 底部：整合提示词（只读，随三张图的选择自动更新）
+    // 底部：整合提示词（只读，随四张图的选择自动更新）
     const promptBox = document.createElement("div");
     promptBox.className = "wp3c-prompt";
     const promptHead = document.createElement("div");
@@ -1031,18 +1602,21 @@ function buildNodeUI(node) {
         return origOnRemoved?.apply(this, arguments);
     };
 
-    node.size = [Math.max(node.size[0], 700), node.size[1] || 10];
+    node.size = [Math.max(node.size[0], 760), node.size[1] || 10];
     node.setDirtyCanvas(true, true);
 
-    // 恢复工作流里已保存的选择
-    for (const slot of ["face", "outfit", "pose"]) refreshCard(node, slot);
+    // 恢复工作流里已保存的选择与开关状态
+    for (const slot of ["face", "outfit", "pose", "hair"]) refreshCard(node, slot);
+    for (const slot of LIB_SLOTS) setSlotEnabled(node, slot, isSlotEnabled(node, slot));
     layoutCards(node);
 
-    // 加载/粘贴工作流时，widget 值要等到 configure 阶段才回填，回填后再刷新一次界面
+    // 加载/粘贴工作流时，widget 值要等到 configure 阶段才回填，回填后再刷新一次界面与端口状态
     const origOnConfigure = node.onConfigure;
     node.onConfigure = function () {
         const r = origOnConfigure?.apply(this, arguments);
-        for (const slot of ["face", "outfit", "pose"]) refreshCard(this, slot);
+        restoreFullOutputs(this);
+        for (const slot of ["face", "outfit", "pose", "hair"]) refreshCard(this, slot);
+        for (const slot of LIB_SLOTS) setSlotEnabled(this, slot, isSlotEnabled(this, slot));
         return r;
     };
 }

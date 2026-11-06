@@ -536,7 +536,8 @@ async def sync_filesystem(request):
         if busy:
             return busy
 
-        result = asset_lib.sync_with_filesystem()
+        # 校准含目录遍历与哈希计算，放后台线程避免大库时阻塞服务器事件循环（界面卡死）
+        result = await asyncio.to_thread(asset_lib.sync_with_filesystem)
         return web.json_response(result)
     except Exception as e:
         logger.error(f"[WP资产库] 文件系统校准异常: {e}", exc_info=True)

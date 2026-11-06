@@ -924,6 +924,30 @@ async function syncFilesystem() {
     }
 }
 
+// 校准文件系统后完整刷新面板（项目下拉 + 分类侧边栏 + 素材网格），保持当前选中状态
+async function syncAndRefreshPanel() {
+    await syncFilesystem();
+    await loadProjects();
+    // 输出视图本身实时读磁盘，只刷新列表即可（保留当前子文件夹选中）
+    if (currentProjectId === WP_OUTPUT_PROJECT_ID) {
+        await loadOutputCategories(true);
+        return;
+    }
+    if (currentProjectId) {
+        await loadCategories(currentProjectId);
+    }
+}
+
+// 切回浏览器窗口时自动同步本地改动（在资源管理器增删/改名文件后切回 ComfyUI 即刷新）；防抖 2 秒避免频繁请求
+let _panelFocusSyncTimer = null;
+window.addEventListener("focus", () => {
+    if (!assetPanelVisible) return;
+    clearTimeout(_panelFocusSyncTimer);
+    _panelFocusSyncTimer = setTimeout(() => {
+        if (assetPanelVisible) syncAndRefreshPanel();
+    }, 2000);
+});
+
 // 切换资产库面板显示/隐藏
 function toggleAssetPanel(show = null) {
     if (!assetPanelElement) {
@@ -935,8 +959,8 @@ function toggleAssetPanel(show = null) {
     if (shouldShow) {
         assetPanelElement.style.display = "flex";
         assetPanelVisible = true;
-        // 每次打开面板时先校准文件系统（同步磁盘改名/删除），再刷新数据
-        syncFilesystem().finally(() => loadProjects());
+        // 每次打开面板时先校准文件系统（同步磁盘改名/删除），再完整刷新项目/分类/素材列表
+        syncAndRefreshPanel();
     } else {
         assetPanelElement.style.display = "none";
         assetPanelVisible = false;
@@ -2152,9 +2176,22 @@ async function loadCategories(projectId) {
             catList.appendChild(catElement);
         });
         
-        // 默认选择第一个分类
+        // 恢复之前选中的分类；该分类已被删除（本地删文件夹后校准）时默认选第一个
         if (categories.length > 0) {
-            selectCategory(categories[0].id);
+            const stillExists = categories.some(cat => cat.id === currentCategoryId);
+            if (stillExists) {
+                // 选中分类未变：保持选中，仅刷新素材网格（带上当前搜索词）
+                loadAssetsByCategory(currentCategoryId, document.getElementById("wp-asset-search-input")?.value || "");
+            } else {
+                selectCategory(categories[0].id);
+            }
+        } else if (currentCategoryId) {
+            // 项目下已无任何分类（文件夹全被删了）：清空选中并提示
+            currentCategoryId = null;
+            const grid = document.getElementById("wp-asset-grid");
+            if (grid) {
+                grid.innerHTML = "<div style='color:#888; text-align:center; padding:50px;'>请选择一个分类</div>";
+            }
         }
     } catch (error) {
         console.error("[WP资产库] 加载分类失败:", error);
