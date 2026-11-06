@@ -10,3 +10,6 @@ data/
 wp_asset_library/
 wp_library_location.json
 wp_output_config.json
+
+# AI 助手本地规则（不随插件分发）
+.trae/

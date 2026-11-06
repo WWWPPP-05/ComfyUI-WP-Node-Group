@@ -1,6 +1,6 @@
 # 🐳 WP Node Group
 
-WP Node Group 是一个 ComfyUI 自定义节点包，包含 26 个实用节点，涵盖图像加载、提示词管理与预设、资产库管理、简易画板、本地 LLM 推理、全景预览、图像对比、注释便签、PSD 图层拆解与导出等综合工作流工具。
+WP Node Group 是一个 ComfyUI 自定义节点包，包含 29 个实用节点，涵盖图像加载、提示词管理与预设、资产库管理、简易画板、本地 LLM 推理、全景预览、图像对比、注释便签、PSD 图层拆解与导出等综合工作流工具。
 
 ##  版本信息
 
@@ -431,7 +431,7 @@ CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python --force-reinstall --no
 | 🐳 WP PSD导出 | WP_PsdExport | PSD 拆解第⑤站（终点）：组装导出可编辑 PSD 文件 |
 | 🐳 WP PSD拆解 | WP_PsdSplitter | PSD 拆解管线启动器 + 管理 API |
 
-> **PSD 拆解管线**：以 `workflows_psd/标准拆解管线.json` 工作流串联五件套节点，实现"单图进、可编辑 PSD 出"的全自动图层拆解。详见《PSD拆解项目_交接文档.md》。
+> **PSD 拆解管线**：以 `workflows_psd/标准拆解管线.json` 工作流串联五件套节点，实现"单图进、可编辑 PSD 出"的全自动图层拆解。详见《docs/PSD拆解项目_交接文档.md》。
 
 ---
 
@@ -459,7 +459,7 @@ CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python --force-reinstall --no
 
 ```
 Comfyui_WP_Node_Group/
-├── __init__.py                 # 节点注册入口（26 个节点）
+├── __init__.py                 # 节点注册入口（29 个节点）
 ├── asset_library.py            # 资产库核心模块（账本缓存 + 缩略图三级缓存）
 ├── asset_output_monitor.py     # 输出监控模块
 ├── nodes/                      # 节点代码目录
@@ -480,10 +480,13 @@ Comfyui_WP_Node_Group/
 │   ├── wp_psd_planner.js       # PSD 图层规划 UI
 │   ├── wp_psd_splitter.js      # PSD 拆解启动器 UI
 │   ├── wp_prompt_agent.js      # 提示词对话 UI
+│   ├── wp_prompt_optimizer.js  # 提示词优化 UI
 │   ├── wp_simple_canvas.js     # 简易画板 UI
 │   ├── wp_slider.js            # 滑条工具 UI
+│   ├── wp_three_image_combo.js # 三图组合 UI
 │   └── vendor/                 # pannellum 全景库（按需懒加载）
 ├── workflows_psd/              # PSD 拆解标准工作流（可一键载入）
+├── docs/                       # 开发文档（PSD 管线交接、依赖安装说明等）
 ├── data/                       # 个人数据（预设与图片，已加入 .gitignore）
 │   ├── prompt_presets.json     # 预设数据文件
 │   └── prompt_preset_images/   # 预设配图
