@@ -13,3 +13,6 @@ wp_output_config.json
 
 # AI 助手本地规则（不随插件分发）
 .trae/
+
+# AI 助手本地工作缓存（不随插件分发）
+.workbuddy/

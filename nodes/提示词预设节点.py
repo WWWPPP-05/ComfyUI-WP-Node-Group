@@ -226,7 +226,7 @@ class PromptPresetNode:
             }
         }
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/💬 文本"
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("提示词",)
     FUNCTION = "get_prompt"

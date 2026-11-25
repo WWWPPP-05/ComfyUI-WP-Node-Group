@@ -5,7 +5,7 @@ from nodes import PreviewImage
 class WPImageComparer(PreviewImage):
     """🐳 WP 图像对比 — 在节点内叠放对比两张图，支持悬停滑动或点击切换（前端交互实现）。"""
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     FUNCTION = "compare_images"
     RETURN_TYPES = ()
     RETURN_NAMES = ()

@@ -23,7 +23,7 @@ class WPTextMergeNode:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("输出文本",)
     FUNCTION = "execute"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/💬 文本"
 
     def execute(self, 文本1, 文本2, 间隔符):
         text1 = 文本1 or ""

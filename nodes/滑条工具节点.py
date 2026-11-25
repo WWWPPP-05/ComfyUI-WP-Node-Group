@@ -33,7 +33,7 @@ class GoohaiUniversalSlider:
     RETURN_TYPES = (any_type,)
     RETURN_NAMES = ("*",)
     FUNCTION     = "execute"
-    CATEGORY     = "🐳 WP_Node"
+    CATEGORY     = "🐳 WP_Node/🛠 其它"
 
     def execute(self, 值, output_type="float"):
         processed_value = round(值, 10)

@@ -33,11 +33,6 @@ const NODE_TYPES = [
     "WP_ImageFolderLoad",                  // 🐳 WP 加载图像（文件夹）
     "WP_ImageSelector",                    // 🐳 WP 图片选择器
     "WP_SimpleCanvas",       // 🐳 WP 简易画板
-    "WP_PsdPlanner",         // 🐳 WP PSD图层规划
-    "WP_PsdLayerExtract",    // 🐳 WP PSD图层精抠
-    "WP_PsdBgInpaint",       // 🐳 WP PSD背景补全
-    "WP_PsdExport",          // 🐳 WP PSD导出
-    "WP_PsdSplitter",        // 🐳 WP PSD拆解
     "WP_ThreeImageCombo",    // 🐳 WP 三图组合
     // 注：WP_Annotate（注释节点）是自绘透明便签，不走此列表，
     // 其默认背景色 import 了下方 HEADER_COLOR，改主题色只需改一处。

@@ -89,7 +89,7 @@ class WpPromptOptimizer:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("优化结果",)
     FUNCTION = "run"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🤖 推理"
 
     @classmethod
     def IS_CHANGED(cls, 卸载模型=False, **kwargs):
@@ -154,7 +154,7 @@ class WpPromptOptimizer:
         total_images = int(图片.shape[0]) if 图片 is not None else 0
 
         # ---- 解析技能（支持热重载；输入开头 /指令 优先于下拉框） ----
-        skills, aliases, replace_systems, refs = _get_skills()
+        skills, aliases, replace_systems, refs, no_select = _get_skills()
         cmd, user_text = _parse_command(raw_text)
 
         # 内置帮助指令：直接返回技能清单，不调用模型
@@ -221,9 +221,10 @@ class WpPromptOptimizer:
             else:
                 system_text = system_text + "\n\n" + skills[skill]
             # 轻量 agent 第一步：技能带多份参考文件时先精选，避免全量塞入；
-            # API 模式下云端大模型理解力强，直接全量加载
+            # API 模式下云端大模型理解力强，直接全量加载；
+            # 技能声明 load_all_references 时同样跳过精选直接全量加载（省一次前向）
             skill_refs = refs.get(skill) or []
-            if llm is not None and len(skill_refs) > 1:
+            if llm is not None and len(skill_refs) > 1 and not no_select.get(skill):
                 t_pick = _wp_log("参考文件精选（agent 第一步）")
                 _reset_llm_inference_state(llm)
                 skill_refs = _pick_references(llm, user_text, total_images, skill_refs)

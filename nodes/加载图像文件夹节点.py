@@ -59,7 +59,7 @@ class ImageFolderLoadNode:
     下游节点会对列表中的每张图像各执行一次
     """
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("图像",)
     OUTPUT_IS_LIST = (True,)

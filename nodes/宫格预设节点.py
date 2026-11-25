@@ -15,7 +15,7 @@ class GonggePresetNode:
     格子区域为深灰色，边框为白色，可反转颜色。
     """
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🛠 其它"
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("IMAGE",)
     FUNCTION = "生成宫格"

@@ -70,7 +70,7 @@ class LoRAStackLoader:
     RETURN_TYPES = ("MODEL",)
     RETURN_NAMES = ("模型",)
     FUNCTION = "load_loras"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🛠 其它"
 
     def load_loras(self, 模型, LoRA_01, 强度_01, 启用_01, LoRA_02, 强度_02, 启用_02, LoRA_03, 强度_03, 启用_03, LoRA_04, 强度_04, 启用_04, LoRA_05, 强度_05, 启用_05):
         # 每个槽位：(启用, LoRA名, 强度)

@@ -164,7 +164,7 @@ class WPSaveToLibraryNode:
     RETURN_NAMES = ("状态",)
     FUNCTION = "execute"
     OUTPUT_NODE = True
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🛠 其它"
     
     def execute(self, image, save_location="(默认)", asset_name=""):
         """

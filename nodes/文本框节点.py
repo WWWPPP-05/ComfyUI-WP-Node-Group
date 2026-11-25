@@ -15,7 +15,7 @@ class WPTextBoxNode:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("文本",)
     FUNCTION = "execute"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/💬 文本"
 
     def execute(self, 文本):
         return (文本,)

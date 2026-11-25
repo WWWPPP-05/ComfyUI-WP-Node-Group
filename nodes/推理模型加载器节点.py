@@ -693,7 +693,7 @@ class WpLlamaLoader:
     RETURN_TYPES = ("QWENLLAMA",)
     RETURN_NAMES = ("qwen模型",)
     FUNCTION = "load"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🤖 推理"
 
     def load(self, 模型系列, 主模型, 视觉投影mmproj, 启用思考, 上下文长度, GPU层数, KV缓存K类型, KV缓存V类型):
         if 主模型.startswith("（请把模型放到"):

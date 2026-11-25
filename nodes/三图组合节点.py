@@ -341,7 +341,7 @@ def ensure_thumbs(lib, items):
 class WPThreeImageCombo:
     """脸模 + 服装 + 姿势 + 发型 四图组合，附带整合提示词输出"""
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "STRING")
     RETURN_NAMES = ("脸模图像", "服装图像", "姿势图像", "发型图像", "整合提示词")
     FUNCTION = "execute"

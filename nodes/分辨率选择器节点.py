@@ -18,7 +18,7 @@ class ResolutionSelectorNode:
     # ========== 节点元数据 ==========
     
     # 节点在ComfyUI中的分类，会显示在节点列表的哪个分类下
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🛠 其它"
 
     # 输出端口的数据类型，这里是两个整数（宽度和高度）
     RETURN_TYPES = ("INT", "INT")

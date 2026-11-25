@@ -25,12 +25,10 @@ from .nodes.合并文本节点 import WPTextMergeNode
 from .nodes.加载图像文件夹节点 import ImageFolderLoadNode
 from .nodes.图片选择器节点 import ImageSelector
 from .nodes.简易画板节点 import WPSimpleCanvas
-from .nodes.PSD图层规划节点 import WP_PsdPlanner
-from .nodes.PSD图层精抠节点 import WP_PsdLayerExtract
-from .nodes.PSD背景补全节点 import WP_PsdBgInpaint
-from .nodes.PSD导出节点 import WP_PsdExport
-from .nodes.PSD拆解启动器节点 import WP_PsdSplitter
 from .nodes.三图组合节点 import WPThreeImageCombo
+from .nodes.H3段间衔接节点 import H3SegmentBridge
+from .nodes.H3视频拼接节点 import H3VideoConcat
+from .nodes.H3分段编排节点 import H3SegmentDirector
 
 # 导入资产库模块（注册API路由）
 from .nodes import 资产库节点
@@ -59,12 +57,10 @@ NODE_CLASS_MAPPINGS = {
     "WP_ImageFolderLoad": ImageFolderLoadNode,
     "WP_ImageSelector": ImageSelector,
     "WP_SimpleCanvas": WPSimpleCanvas,
-    "WP_PsdPlanner": WP_PsdPlanner,
-    "WP_PsdLayerExtract": WP_PsdLayerExtract,
-    "WP_PsdBgInpaint": WP_PsdBgInpaint,
-    "WP_PsdExport": WP_PsdExport,
-    "WP_PsdSplitter": WP_PsdSplitter,
     "WP_ThreeImageCombo": WPThreeImageCombo,
+    "WP_H3SegmentBridge": H3SegmentBridge,
+    "WP_H3VideoConcat": H3VideoConcat,
+    "WP_H3SegmentDirector": H3SegmentDirector,
 }
 
 whale_emoji = chr(0x1F433)
@@ -93,12 +89,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WP_ImageFolderLoad": f"{whale_emoji} WP 加载图像（文件夹）",
     "WP_ImageSelector": f"{whale_emoji} WP 图片选择器",
     "WP_SimpleCanvas": f"{whale_emoji} WP 简易画板",
-    "WP_PsdPlanner": f"{whale_emoji} WP PSD图层规划",
-    "WP_PsdLayerExtract": f"{whale_emoji} WP PSD图层精抠",
-    "WP_PsdBgInpaint": f"{whale_emoji} WP PSD背景补全",
-    "WP_PsdExport": f"{whale_emoji} WP PSD导出",
-    "WP_PsdSplitter": f"{whale_emoji} WP PSD拆解",
     "WP_ThreeImageCombo": f"{whale_emoji} WP 三图组合",
+    "WP_H3SegmentBridge": f"{whale_emoji} WP H3段间衔接",
+    "WP_H3VideoConcat": f"{whale_emoji} WP H3视频拼接",
+    "WP_H3SegmentDirector": f"{whale_emoji} WP H3分段编排",
 }
 
 WEB_DIRECTORY = "./js"

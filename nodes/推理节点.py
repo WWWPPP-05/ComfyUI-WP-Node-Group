@@ -56,7 +56,7 @@ class WpLlamaInference:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("文本",)
     FUNCTION = "run"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🤖 推理"
 
     def run(
         self,

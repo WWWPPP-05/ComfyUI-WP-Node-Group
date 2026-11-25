@@ -7,7 +7,7 @@ class WPAnnotateNode:
 
     RETURN_TYPES = ()
     FUNCTION = "execute"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🛠 其它"
     OUTPUT_NODE = True
 
     def execute(self):

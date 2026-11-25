@@ -34,7 +34,7 @@ class ImageSelector(PreviewImage):
     RETURN_TYPES = ("IMAGE", "STRING")
     RETURN_NAMES = ("selected_images", "selected_indices")
     FUNCTION = "select_image"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     OUTPUT_NODE = True
     OUTPUT_IS_LIST = (True, False)
     INPUT_IS_LIST = True

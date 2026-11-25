@@ -47,7 +47,7 @@ class ImageLoadNode:
             }
         }
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT")
     RETURN_NAMES = ("图像", "遮罩", "宽", "高")
     FUNCTION = "load_image"

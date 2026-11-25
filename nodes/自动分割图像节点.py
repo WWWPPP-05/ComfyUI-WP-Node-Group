@@ -28,7 +28,7 @@ class ImageSplitNode:
     # ========== 节点元数据 ==========
     
     # 节点在ComfyUI中的分类
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
 
     # 输出端口的数据类型，这里是图像批量
     RETURN_TYPES = ("IMAGE",)

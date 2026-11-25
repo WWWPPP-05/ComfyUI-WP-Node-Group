@@ -148,7 +148,7 @@ def _scan_references(base_dir: str) -> list[str]:
     return found
 
 
-def _load_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dict[str, list[dict]]]:
+def _load_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dict[str, list[dict]], dict[str, bool]]:
     """扫描 nodes/skills/ 目录，读取技能定义。文件夹形式的技能名 = 文件夹名。
 
     支持三种形式：
@@ -160,21 +160,25 @@ def _load_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dic
     3. 简单 JSON 文件：skills/xxx.json，内容 {"name", "alias", "prompt", "replace_system"(可选)}。
 
     返回 (技能名 -> 基础指令, 别名 -> 技能名, 技能名 -> 是否替代系统提示词,
-           技能名 -> [{"file": 相对路径, "content": 文件内容}, ...])。
+           技能名 -> [{"file": 相对路径, "content": 文件内容}, ...],
+           技能名 -> 是否全量加载参考文件(跳过前置精选))。
     alias 可选，供 /指令 快捷触发；支持逗号/空格分隔多个别名。
     replace_system 可选，true=用 prompt 完全替代默认系统提示词（避免角色冲突）；
     不写或 false=追加到默认系统提示词之后（保持原行为）。
+    load_all_references 可选，true=参考文件是完整规则集、必须全量加载，
+    跳过「两步式 agent 第一步」的前置精选推理（省一次模型前向，显著提速）。
     """
     skills: dict[str, str] = {}
     aliases: dict[str, str] = {}
     replace_systems: dict[str, bool] = {}
     skill_refs: dict[str, list[dict]] = {}
+    skill_no_select: dict[str, bool] = {}
     os.makedirs(_SKILLS_DIR, exist_ok=True)
     if not os.path.isdir(_SKILLS_DIR):
-        return skills, aliases, replace_systems, skill_refs
+        return skills, aliases, replace_systems, skill_refs, skill_no_select
 
     def _register(data: dict, base_dir: str, display_name: str = "") -> None:
-        """把单个技能定义注册到 skills/aliases/replace_systems/skill_refs 字典。
+        """把单个技能定义注册到 skills/aliases/replace_systems/skill_refs/skill_no_select 字典。
 
         display_name 非空（文件夹形式）时以文件夹名为技能名；
         定义里声明的 name 与文件夹名不同时自动注册为别名，旧工作流里已选的技能名仍能解析。
@@ -206,6 +210,9 @@ def _load_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dic
         replace_systems[name] = bool(data.get("replace_system") or False)
         if ref_files:
             skill_refs[name] = ref_files
+        # 全量加载开关：参考文件是完整规则集时跳过前置精选（省一次模型前向，提速）
+        load_all_raw = str(data.get("load_all_references") or "").strip().lower()
+        skill_no_select[name] = load_all_raw in ("true", "1", "yes", "是")
         # alias 支持逗号/空格分隔的多个别名，如 "h3, h3video"
         alias_raw = str(data.get("alias") or "").strip().lower()
         if declared and declared != name:
@@ -232,11 +239,13 @@ def _load_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dic
                 fields, body = _parse_skill_md(skill_md)
                 if body:
                     replace_raw = str(fields.get("replace_system", "true")).strip().lower()
+                    load_all_raw = str(fields.get("load_all_references", "")).strip().lower()
                     _register({
                         "name": fname,
                         "prompt": body,
                         "alias": " ".join(v for v in (fields.get("name"), fields.get("alias")) if v),
                         "replace_system": replace_raw not in ("false", "0", "no", "否"),
+                        "load_all_references": load_all_raw in ("true", "1", "yes", "是"),
                         "include_references": _scan_references(path),
                     }, path)
             continue
@@ -250,7 +259,7 @@ def _load_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dic
             continue
         _register(data, os.path.dirname(path))
 
-    return skills, aliases, replace_systems, skill_refs
+    return skills, aliases, replace_systems, skill_refs, skill_no_select
 
 
 # 内置帮助指令：直接返回技能清单，不消耗模型推理
@@ -260,7 +269,7 @@ _HELP_COMMANDS = {"help", "帮助", "技能", "skills", "?"}
 # 签名扫描按 3 秒节流，避免每次对话都全量遍历技能目录
 _SKILLS_RESCAN_INTERVAL = 3.0
 _skills_lock = threading.Lock()
-_skills_cache: dict = {"sig": None, "ts": 0.0, "skills": {}, "aliases": {}, "replace": {}, "refs": {}}
+_skills_cache: dict = {"sig": None, "ts": 0.0, "skills": {}, "aliases": {}, "replace": {}, "refs": {}, "no_select": {}}
 
 
 def _skills_signature() -> tuple:
@@ -277,8 +286,8 @@ def _skills_signature() -> tuple:
     return tuple(sorted(sig))
 
 
-def _get_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dict[str, list[dict]]]:
-    """获取 (技能定义, 别名表, 是否替代系统提示词, 各技能参考文件表)。目录变化时自动重扫。
+def _get_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dict[str, list[dict]], dict[str, bool]]:
+    """获取 (技能定义, 别名表, 是否替代系统提示词, 各技能参考文件表, 各技能是否全量加载参考)。目录变化时自动重扫。
 
     扫描按 _SKILLS_RESCAN_INTERVAL 秒节流：间隔内直接用缓存，避免每次对话都全量遍历
     技能目录；间隔外的首次调用重新计算目录签名，增删改技能依然免重启生效。
@@ -288,14 +297,15 @@ def _get_skills() -> tuple[dict[str, str], dict[str, str], dict[str, bool], dict
         if _skills_cache["sig"] is None or now - _skills_cache["ts"] >= _SKILLS_RESCAN_INTERVAL:
             sig = _skills_signature()
             if sig != _skills_cache["sig"]:
-                skills, aliases, replace, refs = _load_skills()
-                _skills_cache.update(sig=sig, skills=skills, aliases=aliases, replace=replace, refs=refs)
+                skills, aliases, replace, refs, no_select = _load_skills()
+                _skills_cache.update(sig=sig, skills=skills, aliases=aliases, replace=replace, refs=refs, no_select=no_select)
             _skills_cache["ts"] = now
-        return _skills_cache["skills"], _skills_cache["aliases"], _skills_cache["replace"], _skills_cache["refs"]
+        return (_skills_cache["skills"], _skills_cache["aliases"], _skills_cache["replace"],
+                _skills_cache["refs"], _skills_cache["no_select"])
 
 
 def _skill_list() -> list[str]:
-    skills, _aliases, _replace, _refs = _get_skills()
+    skills, _aliases, _replace, _refs, _no_select = _get_skills()
     return ["无"] + [name for name in skills if name != "无"]
 
 
@@ -709,7 +719,7 @@ class WpPromptAgent:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("回复文本",)
     FUNCTION = "run"
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🤖 推理"
     OUTPUT_NODE = True
 
     @classmethod
@@ -795,7 +805,7 @@ class WpPromptAgent:
         total_images = int(图片.shape[0]) if 图片 is not None else 0
 
         # ---- 解析本轮技能（先剥离 SID 标记再解析 /指令；技能表支持热重载） ----
-        skills, aliases, replace_systems, refs = _get_skills()
+        skills, aliases, replace_systems, refs, no_select = _get_skills()
         sid, 真实输入 = _extract_sid(用户输入)
         # 剥离「重新生成」标记（前端重新生成按钮写入）：本轮为某一轮的干净重跑
         is_regen = 真实输入.startswith(_REGEN_FLAG)
@@ -903,9 +913,11 @@ class WpPromptAgent:
                 system_text = system_text + "\n\n" + skills[skill]
             # 轻量 agent 第一步：技能带多份参考文件时，先按"本轮请求 + 附图事实"精选，
             # 避免全量塞入让小模型混淆格式；0/1 份时无需精选，失败自动回退全量。
-            # API 模式下云端大模型理解力强，直接全量加载，不额外消耗调用次数
+            # API 模式下云端大模型理解力强，直接全量加载，不额外消耗调用次数。
+            # 技能声明 load_all_references 时（参考文件是完整规则集、缺一不可），
+            # 同样跳过前置精选直接全量加载——省一次模型前向，显著提速。
             skill_refs = refs.get(skill) or []
-            if llm is not None and len(skill_refs) > 1:
+            if llm is not None and len(skill_refs) > 1 and not no_select.get(skill):
                 t_pick = _wp_log("参考文件精选（agent 第一步）")
                 _reset_llm_inference_state(llm)
                 skill_refs = _pick_references(llm, user_text, total_images, skill_refs)

@@ -12,7 +12,7 @@ class PromptListNode:
     输出为字符串列表，跳过空的提示词输入框
     """
     
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/💬 文本"
     
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("提示词",)

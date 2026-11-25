@@ -22,7 +22,7 @@ class WhaleAPINode:
     - 免费额度：每个模型每天 500 次，总 2000 次/天，请注意用量
     """
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🤖 推理"
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
     FUNCTION = "process"

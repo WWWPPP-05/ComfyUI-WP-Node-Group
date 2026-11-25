@@ -1,6 +1,7 @@
 """🐳 全景图预览节点 - 前端360°全景查看 + 视角截图输出（继承 ComfyUI 内置 PreviewImage，复用图片保存逻辑）"""
 import hashlib
 import os
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -13,7 +14,7 @@ from nodes import PreviewImage
 class WPPanoramaView(PreviewImage):
     """🐳 WP 全景图预览 — 弹窗360°查看全景图，选择视角与输出比例截图，由输出端口输出截图画面（截图前透传原图）。"""
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     FUNCTION = "panorama_view"
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("图像",)
@@ -24,7 +25,9 @@ class WPPanoramaView(PreviewImage):
     )
 
     # unique_id -> {"fp": 指纹, "images": 上次保存的回传结果}（输入未变时复用，避免重复落盘与前端闪刷）
-    _source_cache = {}
+    # 使用 OrderedDict 实现 LRU 淘汰：超出上限时只淘汰最久未用的单条，而非整表清空
+    _source_cache = OrderedDict()
+    _source_cache_max = 64
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -92,12 +95,16 @@ class WPPanoramaView(PreviewImage):
             fp = self._tensor_fp(image)
             cached = self._source_cache.get(key)
             if cached and cached["fp"] == fp:
+                # 命中：刷新 LRU 顺序（move_to_end）
+                self._source_cache.move_to_end(key)
                 ui["pano_images"] = cached["images"]
             else:
                 saved = self.save_images(image, "WP.panorama.source.", prompt, extra_pnginfo)["ui"]["images"]
-                if len(self._source_cache) > 64:
-                    self._source_cache.clear()
                 self._source_cache[key] = {"fp": fp, "images": saved}
+                self._source_cache.move_to_end(key)
+                # 超出上限时淘汰最久未使用的单条，而非整表清空
+                while len(self._source_cache) > self._source_cache_max:
+                    self._source_cache.popitem(last=False)
                 ui["pano_images"] = saved
 
         # 输出：有最新截图 → 输出截图（长边归一到设定值）；无截图 → 透传原图

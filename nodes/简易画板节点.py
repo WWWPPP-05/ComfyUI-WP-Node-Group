@@ -11,7 +11,7 @@ import folder_paths
 class WPSimpleCanvas:
     """🐳 WP 简易画板 — 全程在节点内部完成手绘、形状、文字编辑，点击「输出图像」合并三层内容输出图像。"""
 
-    CATEGORY = "🐳 WP_Node"
+    CATEGORY = "🐳 WP_Node/🎨 图像"
     FUNCTION = "simple_canvas"
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("图像",)
